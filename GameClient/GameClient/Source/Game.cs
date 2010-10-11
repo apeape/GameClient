@@ -43,6 +43,8 @@ namespace GameClient
         private Texture2D sphereDiffuse { get; set; }
         private Effect spriteLighting { get; set; }
 
+        RenderTarget2D shaderRenderTarget { get; set; }
+
         public Game1()
         {
             this.graphics = new GraphicsDeviceManager(this);
@@ -138,8 +140,15 @@ namespace GameClient
 
             // TODO: use this.Content to load your game content here
 
+            shaderRenderTarget = new RenderTarget2D(graphics.GraphicsDevice,
+                graphics.GraphicsDevice.PresentationParameters.BackBufferWidth,
+                graphics.GraphicsDevice.PresentationParameters.BackBufferHeight,
+                false,
+                graphics.GraphicsDevice.PresentationParameters.BackBufferFormat,
+                graphics.PreferredDepthStencilFormat);
+
             this.sphereDiffuse = this.contentManager.Load<Texture2D>("sphere.diffuse");
-            this.sphereNormal = this.contentManager.Load<Texture2D>("sphere.normal");
+            this.sphereNormal = Content.Load<Texture2D>("sphere.normal");
             this.sphereHeight = this.contentManager.Load<Texture2D>("sphere.height");
 
             this.spriteLighting = this.contentManager.Load<Effect>("SpriteLighting");
@@ -181,33 +190,18 @@ namespace GameClient
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
-            // TODO: Add your drawing code here
-
-            // set projection matrix for the shader
-            this.spriteLighting.Parameters["World"].SetValue(this.camera.View);
-            this.spriteLighting.Parameters["Projection"].SetValue(this.camera.Projection);
-
-            spriteBatch.Begin(SpriteSortMode.BackToFront, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullCounterClockwise, spriteLighting);
-            spriteBatch.Draw(sphereDiffuse, new Vector2(0, 0), Color.White);
+            spriteBatch.Begin(0, BlendState.AlphaBlend, null, null, null, spriteLighting);
+            spriteBatch.Draw(sphereDiffuse, Vector2.Zero, Color.White);
             spriteBatch.End();
 
-
             base.Draw(gameTime);
-
-            /*
-            this.debugDrawer.ViewProjection = this.camera.View * this.camera.Projection;
-
-            this.debugDrawer.DrawSolidArrow(Vector3.Zero, Vector3.Forward, Color.Green);
-
-            // Render everything the debug drawer has queued on top of the scene
-            this.debugDrawer.Draw(gameTime);*/
         }
 
         /// <summary>
-        ///   Creates the "New Game" and "Quit" buttons directly on the desktop
+        ///   Create gui controls
         /// </summary>
         /// <param name="mainScreen">
-        ///   Screen to whose desktop the buttons will be added
+        ///   Screen to whose desktop the controls will be added
         /// </param>
         private void createDesktopControls(Screen mainScreen)
         {
@@ -219,8 +213,6 @@ namespace GameClient
             );
             quitButton.Pressed += delegate(object sender, EventArgs arguments) { Exit(); };
             mainScreen.Desktop.Children.Add(quitButton);
-
         }
-
     }
 }
