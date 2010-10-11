@@ -1,0 +1,64 @@
+// hlslf output by Cg compiler
+// cgc version 3.0.0007, build date Jul 22 2010
+// command line args: -d3d -nofastmath -profile hlslf
+// source file: hPixelLight.cg
+//vendor NVIDIA Corporation
+//version 3.0.0.07
+//profile hlslf
+//program main
+//semantic main.diffuse
+//semantic main.normalMap
+//semantic main.lightIntensity
+//semantic main.lightPos
+//semantic main.screenSize
+//semantic main.lightRange
+//semantic main.lightColor
+//semantic main.pivotAdjust
+//semantic main.rotMatrix
+//var sampler2D diffuse :  : _diffuse : 4 : 1
+//var sampler2D normalMap :  : _normalMap : 5 : 1
+//var float lightIntensity :  : _lightIntensity : 6 : 1
+//var float3 lightPos :  : _lightPos : 7 : 1
+//var float2 screenSize :  :  : 8 : 0
+//var float lightRange :  : _lightRange : 9 : 1
+//var float4 lightColor :  : _lightColor : 10 : 1
+//var float2 pivotAdjust :  :  : 11 : 0
+//var float4x4 rotMatrix :  : , 4 : 12 : 0
+//var float2 texCoord : $vin.TEXCOORD0 : TEXCOORD0 : 0 : 1
+//var float3 pixelPos3D : $vin.TEXCOORD1 : TEXCOORD1 : 1 : 1
+//var float4 color0 : $vin.COLOR0 : COLOR0 : 2 : 1
+//var float4 oColor : $vout.COLOR : COLOR : 3 : 1
+
+#pragma pack_matrix(row_major)
+
+float3 _TMP0;
+float3 _v0001;
+float3 _TMP2;
+
+ // main procedure, the original name was main
+void main(in float2 _texCoord : TEXCOORD0, in float3 _pixelPos3D : TEXCOORD1, in float4 _color0 : COLOR0, out float4 _oColor : COLOR0, uniform sampler2D _diffuse, uniform sampler2D _normalMap, uniform float _lightIntensity, uniform float3 _lightPos, uniform float _lightRange, uniform float4 _lightColor)
+{
+
+    float4 _diffuseColor;
+    float3 _normalColor;
+    float3 _lightVec;
+    float _diffuseLight;
+    float _squaredDist;
+    float _squaredRange;
+    float _attenBias;
+
+    _diffuseColor = tex2D(_diffuse, _texCoord);
+    _normalColor = tex2D(_normalMap, _texCoord).xyz;
+    _lightVec = _pixelPos3D - _lightPos;
+    _lightColor.w =  1.00000000000000000E000f;
+    _v0001 =  2.00000000000000000E000f*(_normalColor -  5.00000000000000000E-001f);
+    _TMP0 = rsqrt(dot(_v0001, _v0001))*_v0001;
+    _normalColor = -_TMP0;
+    _TMP2 = rsqrt(dot(_lightVec, _lightVec))*_lightVec;
+    _diffuseLight = dot(_TMP2, _normalColor);
+    _squaredDist = dot(_lightVec, _lightVec);
+    _squaredRange = _lightRange*_lightRange;
+    _squaredRange = max(_squaredDist, _squaredRange);
+    _attenBias =  1.00000000000000000E000f - _squaredDist/_squaredRange;
+    _oColor = (((_diffuseColor*_color0)*_diffuseLight*_attenBias)*_lightColor)*_lightIntensity*_diffuseColor.w;
+} // main end
