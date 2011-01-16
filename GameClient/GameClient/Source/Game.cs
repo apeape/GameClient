@@ -11,11 +11,14 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 
 using Nuclex.Graphics;
+using Nuclex.Graphics.Batching;
 using Nuclex.UserInterface.Controls.Desktop;
 using Nuclex.UserInterface.Visuals.Flat;
 using Nuclex.UserInterface;
 using Nuclex.Input;
 using Nuclex.Graphics.Debugging;
+
+using PolyVoxCore;
 
 namespace GameClient
 {
@@ -30,7 +33,6 @@ namespace GameClient
         private GuiManager gui { get; set; }
         /// <summary>Manages input devices for the game</summary>
         private InputManager input { get; set; }
-        private SpriteBatch spriteBatch { get; set; }
         /// <summary>Camera managing the location of the viewer in the scene</summary>
         private Camera camera { get; set; }
         /// <summary>Draws debugging overlays into the scene</summary>
@@ -38,12 +40,13 @@ namespace GameClient
         /// <summary>Shared content manager containing the game's font</summary>
         private ContentManager contentManager;
 
-        private Texture2D sphereNormal { get; set; }
-        private Texture2D sphereHeight { get; set; }
-        private Texture2D sphereDiffuse { get; set; }
-        private Effect spriteLighting { get; set; }
-
-        RenderTarget2D shaderRenderTarget { get; set; }
+        SurfaceMeshPositionMaterialNormal surface = new SurfaceMeshPositionMaterialNormal();
+        /// <summary>Primitive batch used to render terrain cells in batches</summary>
+        private PrimitiveBatch<VertexPositionColor> terrainBatch;
+        private BasicEffectDrawContext terrainDrawContext;
+        private VertexPositionColor[] terrainVertices;
+        private short[] terrainIndices;
+        private int terrainTriangles;
 
         public Game1()
         {
@@ -79,9 +82,14 @@ namespace GameClient
         /// </summary>
         protected override void Initialize()
         {
+            terrainBatch = new PrimitiveBatch<VertexPositionColor>(this.graphics.GraphicsDevice);
+            terrainDrawContext = new BasicEffectDrawContext(graphics.GraphicsDevice);
+            terrainDrawContext.BasicEffect.VertexColorEnabled = true;
+            terrainDrawContext.BasicEffect.LightingEnabled = false;
+
             this.contentManager = new ContentManager(
-              GraphicsDeviceServiceHelper.MakePrivateServiceProvider(this.graphics),
-              Content.RootDirectory
+                GraphicsDeviceServiceHelper.MakePrivateServiceProvider(this.graphics),
+                Content.RootDirectory
             );
 
             this.debugDrawer = new DebugDrawer(this.graphics);
@@ -104,8 +112,8 @@ namespace GameClient
             // We now adjust the position of the desktop window to prevent GUI or HUD
             // elements from appearing outside of the title-safe area.
             mainScreen.Desktop.Bounds = new UniRectangle(
-              new UniScalar(0.0f, 0.0f), new UniScalar(0.0f, 0.0f), // x and y = 10%
-              new UniScalar(1.0f, 0.0f), new UniScalar(1.0f, 0.0f) // width and height = 80%
+                new UniScalar(0.0f, 0.0f), new UniScalar(0.0f, 0.0f), // x and y = 10%
+                new UniScalar(1.0f, 0.0f), new UniScalar(1.0f, 0.0f) // width and height = 80%
             );
 
             // Now let's do something funky: add buttons directly to the desktop.
@@ -114,16 +122,16 @@ namespace GameClient
 
             // Create a new camera with a perspective projection matrix
             this.camera = new Camera(
-              Matrix.CreateLookAt(
-                new Vector3(0.0f, 1.5f, 10.0f), // camera location
-                new Vector3(0.0f, 0.0f, 0.0f), // camera focal point
-                Vector3.Up // up vector for the camera's orientation
-              ),
-              Matrix.CreatePerspectiveFieldOfView(
-                MathHelper.PiOver4, // field of view
-                (float)Window.ClientBounds.Width / (float)Window.ClientBounds.Height, // aspect ratio
-                0.01f, 1000.0f // near and far clipping plane
-              )
+                Matrix.CreateLookAt(
+                    new Vector3(0.0f, 1.5f, 10.0f), // camera location
+                    new Vector3(0.0f, 0.0f, 0.0f), // camera focal point
+                    Vector3.Up // up vector for the camera's orientation
+                ),
+                Matrix.CreatePerspectiveFieldOfView(
+                    MathHelper.PiOver4, // field of view
+                    (float)Window.ClientBounds.Width / (float)Window.ClientBounds.Height, // aspect ratio
+                    0.01f, 1000.0f // near and far clipping plane
+                )
             );
 
             base.Initialize();
@@ -135,26 +143,52 @@ namespace GameClient
         /// </summary>
         protected override void LoadContent()
         {
-            // Create a new SpriteBatch, which can be used to draw textures.
-            spriteBatch = new SpriteBatch(GraphicsDevice);
-
             // TODO: use this.Content to load your game content here
+            VolumeDensity8 volume = new VolumeDensity8(32, 32, 32);
+            Region region = new Region(new Vector3DInt16(0, 0, 0, 0),
+                new Vector3DInt16(32, 32, 32, 32));
 
-            shaderRenderTarget = new RenderTarget2D(graphics.GraphicsDevice,
-                graphics.GraphicsDevice.PresentationParameters.BackBufferWidth,
-                graphics.GraphicsDevice.PresentationParameters.BackBufferHeight,
-                false,
-                graphics.GraphicsDevice.PresentationParameters.BackBufferFormat,
-                graphics.PreferredDepthStencilFormat);
+            //Our new density value
+            byte uDensity = Density8.getMaxDensity();
 
-            this.sphereDiffuse = this.contentManager.Load<Texture2D>("sphere.diffuse");
-            this.sphereNormal = Content.Load<Texture2D>("sphere.normal");
-            this.sphereHeight = this.contentManager.Load<Texture2D>("sphere.height");
+            //Get the old voxel
+            Density8 voxel = volume.getVoxelAt(16, 16, 16);
 
-            this.spriteLighting = this.contentManager.Load<Effect>("SpriteLighting");
-            this.spriteLighting.Parameters["Diffuse"].SetValue(this.sphereDiffuse);
-            this.spriteLighting.Parameters["NormalMap"].SetValue(this.sphereNormal);
-            this.spriteLighting.Parameters["HeightMap"].SetValue(this.sphereHeight);
+            //Modify the density
+            voxel.setDensity(uDensity);
+
+            //Write the voxel value into the volume
+            volume.setVoxelAt(16, 16, 16, voxel);
+
+            SurfaceExtractorDensity8 surfaceExtractor =
+                new SurfaceExtractorDensity8(volume, region, surface);
+            surfaceExtractor.execute(); // extract surface
+
+            // convert vertices to xna format
+            uint vertexCount = surface.getNoOfVertices();
+            PositionMaterialNormalVector pvVertices = surface.getVertices();
+            terrainTriangles = (int)surface.getNoOfNonUniformTrianges()
+                + (int)surface.getNoOfUniformTrianges();
+
+            // TODO: redo polyvox wrapper to generate these instead
+            terrainVertices = surface.getVertices().Select(v =>
+                new VertexPositionColor(
+                    new Vector3(
+                        new Vector2(v.position.getX(), v.position.getY()),
+                        v.position.getZ()),
+                    Color.Red)).ToArray();
+            /*
+            terrainVertices = new VertexPositionColor[vertexCount];
+            for (int i = 0; i < vertexCount; i++)
+            {
+                var pos = pvVertices[i].position;
+                terrainVertices[i].Position = new Vector3(new Vector2(pos.getX(), pos.getY()), pos.getZ());
+                terrainVertices[i].Color = Color.Red;
+            }*/
+
+            // convert indices to xna format
+            terrainIndices = surface.getIndices().Select(i => (short)i).ToArray();
+            //
         }
 
         /// <summary>
@@ -173,6 +207,7 @@ namespace GameClient
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
+            camera.HandleControls(gameTime);
             // Allows the game to exit
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
                 this.Exit();
@@ -190,10 +225,12 @@ namespace GameClient
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
-            spriteBatch.Begin(0, BlendState.AlphaBlend, null, null, null, spriteLighting);
-            spriteBatch.Draw(sphereDiffuse, Vector2.Zero, Color.White);
-            spriteBatch.End();
+            //GraphicsDevice.DrawUserIndexedPrimitives<VertexPositionColor>(PrimitiveType.TriangleList, terrainVertices, 0, terrainVertices.Length, terrainIndices, 0, terrainTriangles);
 
+            // using this we should be able to draw many terrain chunks in one draw call
+            terrainBatch.Begin(QueueingStrategy.Deferred);
+            terrainBatch.Draw(terrainVertices, 0, terrainVertices.Length, terrainIndices, 0, terrainIndices.Length, PrimitiveType.TriangleList, terrainDrawContext);
+            terrainBatch.End();
             base.Draw(gameTime);
         }
 
