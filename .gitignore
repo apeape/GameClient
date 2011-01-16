@@ -5,3 +5,4 @@ bin/
 Log/
 log/
 *.db
+*.Debug.cachefile
