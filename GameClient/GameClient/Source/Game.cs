@@ -48,6 +48,9 @@ namespace GameClient
         private short[] terrainIndices;
         private int terrainTriangles;
 
+        private Random random = new Random();
+        
+
         public Game1()
         {
             this.graphics = new GraphicsDeviceManager(this);
@@ -84,8 +87,6 @@ namespace GameClient
         {
             terrainBatch = new PrimitiveBatch<VertexPositionColor>(this.graphics.GraphicsDevice);
             terrainDrawContext = new BasicEffectDrawContext(graphics.GraphicsDevice);
-            terrainDrawContext.BasicEffect.VertexColorEnabled = true;
-            terrainDrawContext.BasicEffect.LightingEnabled = false;
 
             this.contentManager = new ContentManager(
                 GraphicsDeviceServiceHelper.MakePrivateServiceProvider(this.graphics),
@@ -123,7 +124,7 @@ namespace GameClient
             // Create a new camera with a perspective projection matrix
             this.camera = new Camera(
                 Matrix.CreateLookAt(
-                    new Vector3(0.0f, 1.5f, 10.0f), // camera location
+                    new Vector3(0.0f, 0.0f, -100.0f), // camera location
                     new Vector3(0.0f, 0.0f, 0.0f), // camera focal point
                     Vector3.Up // up vector for the camera's orientation
                 ),
@@ -137,6 +138,36 @@ namespace GameClient
             base.Initialize();
         }
 
+        void CreateSphereInVolume(VolumeDensity8 volume, float radius)
+        {
+            Vector3 volumeCenter = new Vector3(volume.getWidth() / 2, volume.getHeight() / 2, volume.getDepth() / 2);
+            byte uDensity = Density8.getMaxDensity();
+
+            for (ushort z = 0; z < volume.getWidth(); z++)
+                for (ushort y = 0; y < volume.getHeight(); y++)
+                    for (ushort x = 0; x < volume.getDepth(); x++)
+                    {
+                        //Store our current position as a vector...
+                        Vector3 currentPos = new Vector3(x, y, z);
+
+                        //And compute how far the current position is from the center of the volume
+                        float distToCenter = (currentPos - volumeCenter).Length();
+
+                        //If the current voxel is less than 'radius' units from the center then we make it solid.
+                        if(distToCenter <= radius)
+                        {
+                            //Get the old voxel
+                            Density8 voxel = volume.getVoxelAt(x, y, z);
+
+                            //Modify the density
+                            voxel.setDensity(uDensity);
+
+                            //Wrte the voxel value into the volume
+                            volume.setVoxelAt(x, y, z, voxel);
+                        }
+                    }
+        }
+
         /// <summary>
         /// LoadContent will be called once per game and is the place to load
         /// all of your content.
@@ -144,21 +175,11 @@ namespace GameClient
         protected override void LoadContent()
         {
             // TODO: use this.Content to load your game content here
-            VolumeDensity8 volume = new VolumeDensity8(32, 32, 32);
+            VolumeDensity8 volume = new VolumeDensity8(64, 64, 64);
             Region region = new Region(new Vector3DInt16(0, 0, 0, 0),
-                new Vector3DInt16(32, 32, 32, 32));
+                new Vector3DInt16(64, 64, 64, 64));
 
-            //Our new density value
-            byte uDensity = Density8.getMaxDensity();
-
-            //Get the old voxel
-            Density8 voxel = volume.getVoxelAt(16, 16, 16);
-
-            //Modify the density
-            voxel.setDensity(uDensity);
-
-            //Write the voxel value into the volume
-            volume.setVoxelAt(16, 16, 16, voxel);
+            CreateSphereInVolume(volume, 30);
 
             SurfaceExtractorDensity8 surfaceExtractor =
                 new SurfaceExtractorDensity8(volume, region, surface);
@@ -170,13 +191,12 @@ namespace GameClient
             terrainTriangles = (int)surface.getNoOfNonUniformTrianges()
                 + (int)surface.getNoOfUniformTrianges();
 
-            // TODO: redo polyvox wrapper to generate these instead
+            // TODO: redo polyvox wrapper to generate these instead of using LINQ hilarity
             terrainVertices = surface.getVertices().Select(v =>
                 new VertexPositionColor(
-                    new Vector3(
-                        new Vector2(v.position.getX(), v.position.getY()),
-                        v.position.getZ()),
-                    Color.Red)).ToArray();
+                    new Vector3(v.position.getX(), v.position.getY(), v.position.getZ()),
+                    new Color(random.Next(255), random.Next(255), random.Next(255))
+                    )).ToArray();
             /*
             terrainVertices = new VertexPositionColor[vertexCount];
             for (int i = 0; i < vertexCount; i++)
@@ -225,12 +245,23 @@ namespace GameClient
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
+            this.terrainDrawContext.BasicEffect.View = this.camera.View;
+            this.terrainDrawContext.BasicEffect.Projection = this.camera.Projection;
+            this.terrainDrawContext.BasicEffect.World = Matrix.Identity;
+            terrainDrawContext.BasicEffect.VertexColorEnabled = true;
+            //terrainDrawContext.BasicEffect.EnableDefaultLighting();
+            //terrainDrawContext.BasicEffect.LightingEnabled = false;
+
             //GraphicsDevice.DrawUserIndexedPrimitives<VertexPositionColor>(PrimitiveType.TriangleList, terrainVertices, 0, terrainVertices.Length, terrainIndices, 0, terrainTriangles);
 
             // using this we should be able to draw many terrain chunks in one draw call
             terrainBatch.Begin(QueueingStrategy.Deferred);
             terrainBatch.Draw(terrainVertices, 0, terrainVertices.Length, terrainIndices, 0, terrainIndices.Length, PrimitiveType.TriangleList, terrainDrawContext);
+            
             terrainBatch.End();
+
+
+
             base.Draw(gameTime);
         }
 
