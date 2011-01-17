@@ -120,6 +120,8 @@
     <Compile Include="Source\ConsoleFunctions.cs" />
     <Compile Include="Source\Extensions.cs" />
     <Compile Include="Source\FpsComponent.cs" />
+    <Compile Include="Source\Terrain\TerrainManager.cs" />
+    <Compile Include="Source\Terrain\TerrainMesh.cs" />
     <Compile Include="Source\Util\PerlinNoise.cs" />
     <Compile Include="Source\PolyVox\Density8.cs">
       <SubType>Code</SubType>

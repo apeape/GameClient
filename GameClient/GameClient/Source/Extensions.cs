@@ -5,6 +5,7 @@ using System.Text;
 using PolyVoxCore;
 using Microsoft.Xna.Framework;
 using GameClient.Util;
+using GameClient.Terrain;
 
 namespace GameClient
 {
@@ -113,7 +114,12 @@ namespace GameClient
 
         public static void PerlinNoise(this VolumeDensity8 volume)
         {
-            PerlinNoise perlinNoise = new PerlinNoise(4);
+            volume.PerlinNoise(99);
+        }
+
+        public static void PerlinNoise(this VolumeDensity8 volume, int seed)
+        {
+            PerlinNoise perlinNoise = new PerlinNoise(seed);
             double widthDivisor = 1 / (double)10.0;
             double heightDivisor = 1 / (double)10.0;
             double depthDivisor = 1 / (double)10.0;
@@ -132,6 +138,29 @@ namespace GameClient
                 byte density = (byte)(v * 255);
                 volume.setDensityAt(curPos, density);
             });
+        }
+
+        public static VolumeDensity8 VolumeDensity8FromVector3(Vector3 dimensions)
+        {
+            return new VolumeDensity8((ushort)dimensions.X, (ushort)dimensions.Y, (ushort)dimensions.Z);
+        }
+
+        public static VolumeDensity8 VolumeDensity8Cubic(int cubicSize)
+        {
+            return new VolumeDensity8((ushort)cubicSize, (ushort)cubicSize, (ushort)cubicSize);
+        }
+
+        public static Region getEntireVolume(this VolumeDensity8 volume)
+        {
+            return new Region(new Vector3DInt16(0, 0, 0),
+                new Vector3DInt16((short)volume.getWidth(), (short)volume.getHeight(), (short)volume.getDepth()));
+        }
+
+        public static TerrainCellMesh GetMesh(this VolumeDensity8 volume)
+        {
+            TerrainCellMesh mesh = new TerrainCellMesh(volume);
+            mesh.Calculate();
+            return mesh;
         }
     }
 }

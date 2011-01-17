@@ -20,6 +20,7 @@ using Nuclex.Graphics.Debugging;
 
 using PolyVoxCore;
 using GameClient.Util;
+using GameClient.Terrain;
 
 namespace GameClient
 {
@@ -45,11 +46,10 @@ namespace GameClient
         /// <summary>Primitive batch used to render terrain cells in batches</summary>
         private PrimitiveBatch<VertexPositionColor> terrainBatch;
         private BasicEffectDrawContext terrainDrawContext;
-        private VertexPositionColor[] terrainVertices;
-        private short[] terrainIndices;
-        //private int terrainTriangles;
 
         private Random random = new Random();
+
+        private TerrainManager terrainManager;
         
 
         public Game1()
@@ -145,41 +145,20 @@ namespace GameClient
         /// </summary>
         protected override void LoadContent()
         {
-            const int cubicSize = 32;
             // TODO: use this.Content to load your game content here
-            VolumeDensity8 volume = new VolumeDensity8(cubicSize, cubicSize, cubicSize);
-            Region region = new Region(new Vector3DInt16(0, 0, 0),
-                new Vector3DInt16(cubicSize, cubicSize, cubicSize));
-
-            // perlin noise
-            volume.PerlinNoise();
-
-            // random spheres
-            /*
-            for (int i = 0; i < 20; i++)
-                volume.CreateSphere(new Vector3(random.Next(32), random.Next(32), random.Next(32)), random.Next(1, 5), Density8.getMaxDensity());*/
-
-            //volume.DeleteRandomCells(50);
-
-            SurfaceExtractorDensity8 surfaceExtractor =
-                new SurfaceExtractorDensity8(volume, region, surface);
-            surfaceExtractor.execute(); // extract surface
-
-            // convert vertices to xna format
-            uint vertexCount = surface.getNoOfVertices();
-            PositionMaterialNormalVector pvVertices = surface.getVertices();
-            //terrainTriangles = (int)surface.getNoOfNonUniformTrianges() + (int)surface.getNoOfUniformTrianges();
-
-            // TODO: redo polyvox wrapper to generate these instead of using LINQ hilarity
-            terrainVertices = surface.getVertices().Select(v =>
-                new VertexPositionColor(
-                    new Vector3(v.position.getX(), v.position.getY(), v.position.getZ()),
-                    new Color(random.Next(255), random.Next(255), random.Next(255))
-                    )).ToArray();
-
-            // convert indices to xna format
-            terrainIndices = surface.getIndices().Select(i => (short)i).Reverse().ToArray();
-            //terrainIndices = surface.getIndices().Select(i => (short)i).ToArray();
+            const int terrainSize = 2;
+            const int cellSize = 32;
+            terrainManager = new TerrainManager(terrainSize, cellSize);
+            terrainManager.InitializeCells();
+            terrainManager.ForEachCell( (pos, cell) =>
+                {
+                    // generate perlin 3d noise
+                    cell.PerlinNoise(random.Next(100));
+                    // generate mesh for the cell
+                    TerrainCellMesh mesh = new TerrainCellMesh(terrainManager.GetCell(pos));
+                    mesh.Calculate();
+                    terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z] = mesh;
+                });
         }
 
         /// <summary>
@@ -224,7 +203,19 @@ namespace GameClient
             // using this we should be able to draw many terrain chunks in one draw call
             terrainBatch.Begin(QueueingStrategy.Deferred);
             //GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
-            terrainBatch.Draw(terrainVertices, 0, terrainVertices.Length, terrainIndices, 0, terrainIndices.Length, PrimitiveType.TriangleList, terrainDrawContext);
+            terrainManager.ForEachCellMesh( (pos, cellMesh) =>
+                {
+                    terrainBatch.Draw(
+                        cellMesh.Vertices,
+                        0,
+                        cellMesh.Vertices.Length,
+                        cellMesh.Indices, 
+                        0,
+                        cellMesh.Indices.Length, 
+                        PrimitiveType.TriangleList,
+                        terrainDrawContext);
+                });
+            //terrainBatch.Draw(terrainVertices, 0, terrainVertices.Length, terrainIndices, 0, terrainIndices.Length, PrimitiveType.TriangleList, terrainDrawContext);
             terrainBatch.End();
 
             base.Draw(gameTime);
