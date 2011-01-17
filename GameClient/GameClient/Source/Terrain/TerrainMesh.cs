@@ -38,7 +38,7 @@ namespace GameClient.Terrain
                     byte noise = PolyVoxExtensions.PerlinNoise(v.position.ToVector3(), colorDensity);
                     byte rand = (byte)random.Next(255);
                     return new VertexPositionColor(vector,
-                        new Color(120 + (noise % 50), 170 + (rand * noise % 20), noise + 30));
+                        new Color(random.Next(120, 130) + (noise % 50), random.Next(160, 180) + (rand * noise % 20), noise + 30));
                 }).ToArray();
 
             // convert indices to xna format

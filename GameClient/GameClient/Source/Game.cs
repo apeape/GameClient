@@ -59,6 +59,8 @@ namespace GameClient
         const int cellSize = 32;
         const int terrainSize = 2;
 
+        private float terrainNoiseDensity = 45.0f;
+
         private bool Initialized = false;
         private bool Wireframe = false;
 
@@ -178,7 +180,6 @@ namespace GameClient
                     new Thread(delegate()
                     {
                         // generate perlin 3d noise
-                        const double terrainNoiseDensity = 45.0;
                         Vector3 noiseOffset = pos;
                         noiseOffset.Y *= -1;
                         cell.PerlinNoise(noiseOffset * cellSize, terrainNoiseDensity, seed);
@@ -355,32 +356,34 @@ Regenerate: T
             options.EnableDragging = true;
             options.Bounds = new UniRectangle(
                 new UniScalar(1.0f, -210.0f), 10,
-                200, 230);
+                200, 260);
             mainScreen.Desktop.Children.Add(options);
-
-            OptionControl fogToggle = new OptionControl();
-            fogToggle.Text = "Fog";
-            fogToggle.Bounds = new UniRectangle(10, 30, 100, 32);
-            fogToggle.Selected = terrainDrawContext.BasicEffect.FogEnabled;
-            fogToggle.Changed += delegate(object sender, EventArgs arguments) { terrainDrawContext.BasicEffect.FogEnabled = fogToggle.Selected; };
-            options.Children.Add(fogToggle);
 
             OptionControl wireFrameToggle = new OptionControl();
             wireFrameToggle.Text = "Wireframe";
-            wireFrameToggle.Bounds = new UniRectangle(10, 65, 100, 32);
+            wireFrameToggle.Bounds = new UniRectangle(10, 30, 100, 32);
             wireFrameToggle.Selected = Wireframe;
             wireFrameToggle.Changed += delegate(object sender, EventArgs arguments) { Wireframe = wireFrameToggle.Selected; };
             options.Children.Add(wireFrameToggle);
+
+            OptionControl fogToggle = new OptionControl();
+            fogToggle.Text = "Fog";
+            fogToggle.Bounds = new UniRectangle(10, 65, 100, 32);
+            fogToggle.Selected = terrainDrawContext.BasicEffect.FogEnabled;
+            fogToggle.Changed += delegate(object sender, EventArgs arguments) { terrainDrawContext.BasicEffect.FogEnabled = fogToggle.Selected; };
+            options.Children.Add(fogToggle);
 
             LabelControl fogNearLabel = new LabelControl("Near");
             fogNearLabel.Bounds = new UniRectangle(10, 100, 20, 24);
             options.Children.Add(fogNearLabel);
 
+            const float fogRange = 1000f;
+
             HorizontalSliderControl fogNear = new HorizontalSliderControl();
             fogNear.Bounds = new UniRectangle(50, 100, 140, 24);
             fogNear.ThumbSize = 0.1f;
-            fogNear.ThumbPosition = terrainDrawContext.BasicEffect.FogStart / (float) 200;
-            fogNear.Moved += delegate(object sender, EventArgs arguments) { terrainDrawContext.BasicEffect.FogStart = fogNear.ThumbPosition * 200; };
+            fogNear.ThumbPosition = terrainDrawContext.BasicEffect.FogStart / fogRange;
+            fogNear.Moved += delegate(object sender, EventArgs arguments) { terrainDrawContext.BasicEffect.FogStart = fogNear.ThumbPosition * fogRange; };
             options.Children.Add(fogNear);
 
             LabelControl fogFarLabel = new LabelControl("Far");
@@ -390,9 +393,21 @@ Regenerate: T
             HorizontalSliderControl fogFar = new HorizontalSliderControl();
             fogFar.Bounds = new UniRectangle(50, 125, 140, 24);
             fogFar.ThumbSize = 0.1f;
-            fogFar.ThumbPosition = terrainDrawContext.BasicEffect.FogEnd / (float)200;
-            fogFar.Moved += delegate(object sender, EventArgs arguments) { terrainDrawContext.BasicEffect.FogEnd = fogFar.ThumbPosition * 200; };
+            fogFar.ThumbPosition = terrainDrawContext.BasicEffect.FogEnd / fogRange;
+            fogFar.Moved += delegate(object sender, EventArgs arguments) { terrainDrawContext.BasicEffect.FogEnd = fogFar.ThumbPosition * fogRange; };
             options.Children.Add(fogFar);
+
+            LabelControl densityLabel = new LabelControl("Density");
+            densityLabel.Bounds = new UniRectangle(10, 150, 20, 24);
+            options.Children.Add(densityLabel);
+
+            const float densityRange = 100.0f;
+            HorizontalSliderControl densityControl = new HorizontalSliderControl();
+            densityControl.Bounds = new UniRectangle(60, 150, 130, 24);
+            densityControl.ThumbSize = 0.1f;
+            densityControl.ThumbPosition = terrainNoiseDensity / densityRange;
+            densityControl.Moved += delegate(object sender, EventArgs arguments) { terrainNoiseDensity = densityControl.ThumbPosition * densityRange; };
+            options.Children.Add(densityControl);
 
             ButtonControl regenerateButton = new ButtonControl();
             regenerateButton.Text = "Regenerate";
