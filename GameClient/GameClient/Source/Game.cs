@@ -37,6 +37,9 @@ namespace GameClient
         private InputManager input { get; set; }
         /// <summary>Camera managing the location of the viewer in the scene</summary>
         private Camera camera { get; set; }
+        float cameraArc = 0;
+        float cameraRotation = 0;
+        float cameraDistance = 100;
         /// <summary>Draws debugging overlays into the scene</summary>
         private DebugDrawer debugDrawer { get; set; }
         /// <summary>Shared content manager containing the game's font</summary>
@@ -50,6 +53,8 @@ namespace GameClient
         private Random random = new Random();
 
         private TerrainManager terrainManager;
+
+        const int cellSize = 32;
         
 
         public Game1()
@@ -147,7 +152,6 @@ namespace GameClient
         {
             // TODO: use this.Content to load your game content here
             const int terrainSize = 2;
-            const int cellSize = 32;
             terrainManager = new TerrainManager(terrainSize, cellSize);
             terrainManager.InitializeCells();
             terrainManager.ForEachCell( (pos, cell) =>
@@ -177,14 +181,53 @@ namespace GameClient
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
-            camera.HandleControls(gameTime);
+            //camera.HandleControls(gameTime);
+            UpdateCamera(gameTime);
+
             // Allows the game to exit
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
-                this.Exit();
+            //if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
+                //this.Exit();
 
             // TODO: Add your update logic here
 
             base.Update(gameTime);
+        }
+
+        private void DrawTerrain()
+        {
+            Matrix worldMatrix = Matrix.CreateScale(1.0f, 1.0f, 1.0f)
+                * Matrix.CreateRotationY(MathHelper.Pi)
+                * Matrix.CreateTranslation(new Vector3(0, 0, 0));
+
+            terrainDrawContext.BasicEffect.VertexColorEnabled = true;
+
+            GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
+
+            // using this we should be able to draw many terrain chunks in one draw call
+            terrainBatch.Begin(QueueingStrategy.Deferred);
+            
+            terrainManager.ForEachCellMesh((pos, cellMesh) =>
+            {
+                Matrix terrainPos = Matrix.CreateScale(1.0f, 1.0f, 1.0f)
+                    * Matrix.CreateRotationY(MathHelper.Pi)
+                    * Matrix.CreateTranslation(pos * cellSize);
+
+                terrainDrawContext.BasicEffect.View = this.camera.View;
+                terrainDrawContext.BasicEffect.Projection = this.camera.Projection;
+                terrainDrawContext.BasicEffect.World = terrainPos * worldMatrix;
+
+                terrainBatch.Draw(
+                    cellMesh.Vertices,
+                    0,
+                    cellMesh.Vertices.Length,
+                    cellMesh.Indices,
+                    0,
+                    cellMesh.Indices.Length,
+                    PrimitiveType.TriangleList,
+                    terrainDrawContext);
+            });
+            //terrainBatch.Draw(terrainVertices, 0, terrainVertices.Length, terrainIndices, 0, terrainIndices.Length, PrimitiveType.TriangleList, terrainDrawContext);
+            terrainBatch.End();
         }
 
         /// <summary>
@@ -195,28 +238,18 @@ namespace GameClient
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
-            this.terrainDrawContext.BasicEffect.View = this.camera.View;
-            this.terrainDrawContext.BasicEffect.Projection = this.camera.Projection;
-            this.terrainDrawContext.BasicEffect.World = Matrix.Identity;
-            terrainDrawContext.BasicEffect.VertexColorEnabled = true;
-            
-            // using this we should be able to draw many terrain chunks in one draw call
-            terrainBatch.Begin(QueueingStrategy.Deferred);
-            //GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
-            terrainManager.ForEachCellMesh( (pos, cellMesh) =>
-                {
-                    terrainBatch.Draw(
-                        cellMesh.Vertices,
-                        0,
-                        cellMesh.Vertices.Length,
-                        cellMesh.Indices, 
-                        0,
-                        cellMesh.Indices.Length, 
-                        PrimitiveType.TriangleList,
-                        terrainDrawContext);
-                });
-            //terrainBatch.Draw(terrainVertices, 0, terrainVertices.Length, terrainIndices, 0, terrainIndices.Length, PrimitiveType.TriangleList, terrainDrawContext);
-            terrainBatch.End();
+            // Compute camera matrices.
+            camera.View = Matrix.CreateTranslation(0, -40, 0) *
+                          Matrix.CreateRotationY(MathHelper.ToRadians(cameraRotation)) *
+                          Matrix.CreateRotationX(MathHelper.ToRadians(cameraArc)) *
+                          Matrix.CreateLookAt(new Vector3(0, 0, -cameraDistance),
+                                              new Vector3(0, 0, 0), Vector3.Up);
+
+            terrainDrawContext.BasicEffect.View = this.camera.View;
+            terrainDrawContext.BasicEffect.Projection = this.camera.Projection;
+            terrainDrawContext.BasicEffect.World = Matrix.Identity;
+
+            DrawTerrain();
 
             base.Draw(gameTime);
         }
@@ -238,5 +271,78 @@ namespace GameClient
             quitButton.Pressed += delegate(object sender, EventArgs arguments) { Exit(); };
             mainScreen.Desktop.Children.Add(quitButton);
         }
+
+
+        /// <summary>
+        /// Handles camera input.
+        /// </summary>
+        private void UpdateCamera(GameTime gameTime)
+        {
+            KeyboardState currentKeyboardState = Keyboard.GetState();
+            GamePadState currentGamePadState = GamePad.GetState(PlayerIndex.One);
+
+            float time = (float)gameTime.ElapsedGameTime.TotalMilliseconds;
+
+            // Check for input to rotate the camera up and down around the model.
+            if (currentKeyboardState.IsKeyDown(Keys.Up) ||
+                currentKeyboardState.IsKeyDown(Keys.W))
+            {
+                cameraArc += time * 0.1f;
+            }
+
+            if (currentKeyboardState.IsKeyDown(Keys.Down) ||
+                currentKeyboardState.IsKeyDown(Keys.S))
+            {
+                cameraArc -= time * 0.1f;
+            }
+
+            cameraArc += currentGamePadState.ThumbSticks.Right.Y * time * 0.25f;
+
+            // Limit the arc movement.
+            if (cameraArc > 90.0f)
+                cameraArc = 90.0f;
+            else if (cameraArc < -90.0f)
+                cameraArc = -90.0f;
+
+            // Check for input to rotate the camera around the model.
+            if (currentKeyboardState.IsKeyDown(Keys.Right) ||
+                currentKeyboardState.IsKeyDown(Keys.D))
+            {
+                cameraRotation += time * 0.1f;
+            }
+
+            if (currentKeyboardState.IsKeyDown(Keys.Left) ||
+                currentKeyboardState.IsKeyDown(Keys.A))
+            {
+                cameraRotation -= time * 0.1f;
+            }
+
+            cameraRotation += currentGamePadState.ThumbSticks.Right.X * time * 0.25f;
+
+            // Check for input to zoom camera in and out.
+            if (currentKeyboardState.IsKeyDown(Keys.Z))
+                cameraDistance += time * 0.25f;
+
+            if (currentKeyboardState.IsKeyDown(Keys.X))
+                cameraDistance -= time * 0.25f;
+
+            cameraDistance += currentGamePadState.Triggers.Left * time * 0.5f;
+            cameraDistance -= currentGamePadState.Triggers.Right * time * 0.5f;
+
+            // Limit the camera distance.
+            if (cameraDistance > 500.0f)
+                cameraDistance = 500.0f;
+            else if (cameraDistance < 10.0f)
+                cameraDistance = 10.0f;
+
+            if (currentGamePadState.Buttons.RightStick == ButtonState.Pressed ||
+                currentKeyboardState.IsKeyDown(Keys.R))
+            {
+                cameraArc = 0;
+                cameraRotation = 0;
+                cameraDistance = 100;
+            }
+        }
+
     }
 }

@@ -35,6 +35,7 @@ namespace GameClient.Terrain
                     )).ToArray();
 
             // convert indices to xna format
+            //Indices = surface.getIndices().Select(i => (short)i).ToArray();
             Indices = surface.getIndices().Select(i => (short)i).Reverse().ToArray();
         }
     }
