@@ -96,6 +96,10 @@ namespace GameClient
         {
             terrainBatch = new PrimitiveBatch<VertexPositionColor>(this.graphics.GraphicsDevice);
             terrainDrawContext = new BasicEffectDrawContext(graphics.GraphicsDevice);
+            terrainDrawContext.BasicEffect.FogEnabled = true;
+            terrainDrawContext.BasicEffect.FogColor = Color.Black.ToVector3();
+            terrainDrawContext.BasicEffect.FogStart = 50;
+            terrainDrawContext.BasicEffect.FogEnd = 250;
 
             this.contentManager = new ContentManager(
                 GraphicsDeviceServiceHelper.MakePrivateServiceProvider(this.graphics),
@@ -276,7 +280,7 @@ namespace GameClient
             //GraphicsDevice.Clear(Color.CornflowerBlue);
             GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.Black, 1.0f, 0);
 
-            // Compute camera matrices.
+            // Compute camera matrices
             camera.View = Matrix.CreateTranslation(0, -40, 0) *
                           Matrix.CreateRotationY(MathHelper.ToRadians(cameraRotation)) *
                           Matrix.CreateRotationX(MathHelper.ToRadians(cameraArc)) *
@@ -289,6 +293,7 @@ namespace GameClient
 
             DrawTerrain();
 
+            debugDrawer.DrawSolidBox(Vector3.Zero, new Vector3(50, 50, 50), Color.Green);
             debugDrawer.Draw(gameTime);
             debugDrawer.Reset();
 

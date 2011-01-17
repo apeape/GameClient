@@ -34,8 +34,9 @@ namespace GameClient.Terrain
                     Vector3 vector = v.position.ToVector3();
                     // this is super slow, need to do it per cell instead.
                     byte noise = PolyVoxExtensions.PerlinNoise(v.position.ToVector3(), colorDensity);
+                    byte rand = (byte)random.Next(255);
                     return new VertexPositionColor(vector,
-                        new Color(noise, noise, noise));
+                        new Color(120 + (noise % 50), 170 + (rand * noise % 20), noise + 30));
                 }).ToArray();
 
             // convert indices to xna format
