@@ -118,7 +118,9 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Source\ConsoleFunctions.cs" />
+    <Compile Include="Source\Extensions.cs" />
     <Compile Include="Source\FpsComponent.cs" />
+    <Compile Include="Source\Util\PerlinNoise.cs" />
     <Compile Include="Source\PolyVox\Density8.cs">
       <SubType>Code</SubType>
     </Compile>

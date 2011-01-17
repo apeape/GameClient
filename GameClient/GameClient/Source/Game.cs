@@ -19,6 +19,7 @@ using Nuclex.Input;
 using Nuclex.Graphics.Debugging;
 
 using PolyVoxCore;
+using GameClient.Util;
 
 namespace GameClient
 {
@@ -138,72 +139,27 @@ namespace GameClient
             base.Initialize();
         }
 
-        void CreateSphereInVolume(VolumeDensity8 volume, float radius, byte density)
-        {
-            Vector3 volumeCenter = new Vector3(volume.getWidth() / 2, volume.getHeight() / 2, volume.getDepth() / 2);
-            CreateSphereInVolume(volume, volumeCenter, radius, density);
-        }
-
-        void CreateSphereInVolume(VolumeDensity8 volume, Vector3 center, float radius, byte density)
-        {
-            for (ushort z = 0; z < volume.getWidth(); z++)
-                for (ushort y = 0; y < volume.getHeight(); y++)
-                    for (ushort x = 0; x < volume.getDepth(); x++)
-                    {
-                        //Store our current position as a vector...
-                        Vector3 currentPos = new Vector3(x, y, z);
-
-                        //And compute how far the current position is from the center of the volume
-                        float distToCenter = (currentPos - center).Length();
-
-                        //If the current voxel is less than 'radius' units from the center then we make it solid.
-                        if(distToCenter <= radius)
-                        {
-                            //Get the old voxel
-                            Density8 voxel = volume.getVoxelAt(x, y, z);
-
-                            //Modify the density
-                            voxel.setDensity(density);
-
-                            //Wrte the voxel value into the volume
-                            volume.setVoxelAt(x, y, z, voxel);
-                        }
-                    }
-        }
-
-        void DeleteRandomCells(VolumeDensity8 volume, byte percentToDelete)
-        {
-            for (ushort z = 0; z < volume.getWidth(); z++)
-                for (ushort y = 0; y < volume.getHeight(); y++)
-                    for (ushort x = 0; x < volume.getDepth(); x++)
-                    {
-                        if (random.Next(100) <= percentToDelete)
-                        {
-                            //Get the old voxel
-                            Density8 voxel = volume.getVoxelAt(x, y, z);
-
-                            //Modify the density
-                            voxel.setDensity(0);
-
-                            //Wrte the voxel value into the volume
-                            volume.setVoxelAt(x, y, z, voxel);
-                        }
-                    }
-        }
-
         /// <summary>
         /// LoadContent will be called once per game and is the place to load
         /// all of your content.
         /// </summary>
         protected override void LoadContent()
         {
+            const int cubicSize = 32;
             // TODO: use this.Content to load your game content here
-            VolumeDensity8 volume = new VolumeDensity8(32, 32, 32);
+            VolumeDensity8 volume = new VolumeDensity8(cubicSize, cubicSize, cubicSize);
             Region region = new Region(new Vector3DInt16(0, 0, 0),
-                new Vector3DInt16(32, 32, 32));
+                new Vector3DInt16(cubicSize, cubicSize, cubicSize));
 
-            CreateSphereInVolume(volume, 16, Density8.getMaxDensity());
-            //DeleteRandomCells(volume, 90);
+            // perlin noise
+            volume.PerlinNoise();
+
+            // random spheres
+            /*
+            for (int i = 0; i < 20; i++)
+                volume.CreateSphere(new Vector3(random.Next(32), random.Next(32), random.Next(32)), random.Next(1, 5), Density8.getMaxDensity());*/
+
+            //volume.DeleteRandomCells(50);
 
             SurfaceExtractorDensity8 surfaceExtractor =
                 new SurfaceExtractorDensity8(volume, region, surface);
@@ -223,6 +179,7 @@ namespace GameClient
 
             // convert indices to xna format
             terrainIndices = surface.getIndices().Select(i => (short)i).Reverse().ToArray();
+            //terrainIndices = surface.getIndices().Select(i => (short)i).ToArray();
         }
 
         /// <summary>
@@ -263,9 +220,10 @@ namespace GameClient
             this.terrainDrawContext.BasicEffect.Projection = this.camera.Projection;
             this.terrainDrawContext.BasicEffect.World = Matrix.Identity;
             terrainDrawContext.BasicEffect.VertexColorEnabled = true;
-
+            
             // using this we should be able to draw many terrain chunks in one draw call
             terrainBatch.Begin(QueueingStrategy.Deferred);
+            //GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
             terrainBatch.Draw(terrainVertices, 0, terrainVertices.Length, terrainIndices, 0, terrainIndices.Length, PrimitiveType.TriangleList, terrainDrawContext);
             terrainBatch.End();
 
