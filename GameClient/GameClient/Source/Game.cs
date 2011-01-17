@@ -59,7 +59,11 @@ namespace GameClient
         const int terrainSize = 2;
 
         private bool Initialized = false;
-        
+        private bool Wireframe = false;
+
+        private KeyboardState previousKeyboardState;
+        private MouseState previousMouseState;
+
 
         public Game1()
         {
@@ -98,9 +102,9 @@ namespace GameClient
             terrainBatch = new PrimitiveBatch<VertexPositionColor>(graphics.GraphicsDevice);
             terrainDrawContext = new BasicEffectDrawContext(graphics.GraphicsDevice);
             terrainDrawContext.BasicEffect.FogEnabled = true;
-            terrainDrawContext.BasicEffect.FogColor = Color.Black.ToVector3();
+            terrainDrawContext.BasicEffect.FogColor = new Color(20, 20, 30).ToVector3();
             terrainDrawContext.BasicEffect.FogStart = 50;
-            terrainDrawContext.BasicEffect.FogEnd = 250;
+            terrainDrawContext.BasicEffect.FogEnd = 100;
 
             contentManager = new ContentManager(
                 GraphicsDeviceServiceHelper.MakePrivateServiceProvider(graphics),
@@ -153,6 +157,50 @@ namespace GameClient
             Initialized = true;
         }
 
+        private void GenerateTerrain(int seed)
+        {
+            if (terrainManager != null)
+                if (terrainManager.cellsInitialized > 0
+                    && (terrainManager.cellsInitialized < terrainManager.terrainCells.Length))
+                    return; // currently generating terrain
+
+            terrainManager = new TerrainManager(terrainSize, cellSize);
+            terrainManager.InitializeCells();
+            terrainManager.Initialized = false;
+            terrainManager.cellsInitialized = 0;
+            // generate terrain in a new thread
+            new Thread(delegate()
+            {
+                terrainManager.ForEachCell((pos, cell) =>
+                {
+                    // do each cell in its own thread
+                    new Thread(delegate()
+                    {
+                        // generate perlin 3d noise
+                        const double terrainNoiseDensity = 45.0;
+                        Vector3 noiseOffset = pos;
+                        noiseOffset.Y *= -1;
+                        cell.PerlinNoise(noiseOffset * cellSize, terrainNoiseDensity, seed);
+                        // generate mesh for the cell
+                        TerrainCellMesh mesh = new TerrainCellMesh(terrainManager.GetCell(pos));
+                        mesh.Calculate();
+                        if (mesh == null)
+                        {
+                            throw new Exception("Problem generating mesh from volume!");
+                        }
+                        terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z] = mesh;
+                        terrainManager.cellsInitialized++;
+                    }).Start();
+                });
+            }).Start();
+            /*
+            // test sphere
+            terrainManager.terrainCells[0, 0, 0].CreateSphere(18, 255);
+            terrainManager.terrainCellMeshes[0, 0, 0] = new TerrainCellMesh(terrainManager.GetCell(0, 0, 0));
+            terrainManager.terrainCellMeshes[0, 0, 0].Calculate();
+            terrainManager.Initialized = true;*/
+        }
+
         /// <summary>
         /// LoadContent will be called once per game and is the place to load
         /// all of your content.
@@ -160,30 +208,7 @@ namespace GameClient
         protected override void LoadContent()
         {
             // TODO: use Content to load your game content here
-            terrainManager = new TerrainManager(terrainSize, cellSize);
-            terrainManager.InitializeCells();
-
-            // generate terrain in a new thread
-            new Thread(delegate()
-                {
-                    terrainManager.ForEachCell((pos, cell) =>
-                        {
-                            // do each cell in its own thread
-                            new Thread(delegate()
-                                {
-                                    // generate perlin 3d noise
-                                    const double terrainNoiseDensity = 40.0;
-                                    Vector3 noiseOffset = pos;
-                                    noiseOffset.Y *= -1;
-                                    cell.PerlinNoise(noiseOffset * cellSize, terrainNoiseDensity);
-                                    // generate mesh for the cell
-                                    TerrainCellMesh mesh = new TerrainCellMesh(terrainManager.GetCell(pos));
-                                    mesh.Calculate();
-                                    terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z] = mesh;
-                                    terrainManager.cellsInitialized++;
-                                }).Start();
-                        });
-                }).Start();
+            GenerateTerrain(14);
         }
 
         /// <summary>
@@ -233,7 +258,10 @@ namespace GameClient
                 GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
 
                 RasterizerState rasterizerState = new RasterizerState();
-                //rasterizerState.FillMode = FillMode.WireFrame;
+                if (Wireframe)
+                    rasterizerState.FillMode = FillMode.WireFrame;
+                else
+                    rasterizerState.FillMode = FillMode.Solid;
                 rasterizerState.CullMode = CullMode.CullClockwiseFace;
                 GraphicsDevice.RasterizerState = rasterizerState;
 
@@ -242,7 +270,8 @@ namespace GameClient
 
                 terrainManager.ForEachCellMesh((pos, cellMesh) =>
                 {
-                    Matrix terrainPos = Matrix.CreateScale(1.025f, 1.025f, 1.025f)
+                    //Matrix terrainPos = Matrix.CreateScale(1.025f, 1.025f, 1.025f)
+                    Matrix terrainPos = Matrix.CreateScale(0.9f, 0.9f, 0.9f)
                         * Matrix.CreateRotationY(MathHelper.Pi)
                         * Matrix.CreateTranslation(pos * cellSize);
 
@@ -269,7 +298,9 @@ namespace GameClient
                 GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
             }
             else
-                debugDrawer.DrawString(new Vector2((Window.ClientBounds.Width / 2) - 50, Window.ClientBounds.Height / 2), "Generating terrain...", Color.Green);
+                debugDrawer.DrawString(new Vector2((Window.ClientBounds.Width / 2) - 50, Window.ClientBounds.Height / 2),
+                    "Generating terrain... " + terrainManager.cellsInitialized + "/" + terrainManager.terrainCells.Length,
+                    Color.Green);
         }
 
         /// <summary>
@@ -294,6 +325,16 @@ namespace GameClient
 
             DrawTerrain();
 
+            debugDrawer.DrawString(new Vector2(20, 50),
+@"Controls:
+Movement:   W S A D
+Zoom:       X Z
+Reset:      R
+Fog:        F
+Wireframe:  Q
+Regenerate: T
+",
+                Color.Orange);
             debugDrawer.Draw(gameTime);
             debugDrawer.Reset();
 
@@ -388,6 +429,17 @@ namespace GameClient
                 cameraRotation = 0;
                 cameraDistance = 100;
             }
+
+            if (!previousKeyboardState.IsKeyDown(Keys.Q) && currentKeyboardState.IsKeyDown(Keys.Q))
+                Wireframe = !Wireframe;
+
+            if (!previousKeyboardState.IsKeyDown(Keys.F) && currentKeyboardState.IsKeyDown(Keys.F))
+                terrainDrawContext.BasicEffect.FogEnabled = !terrainDrawContext.BasicEffect.FogEnabled;
+
+            if (!previousKeyboardState.IsKeyDown(Keys.T) && currentKeyboardState.IsKeyDown(Keys.T))
+                GenerateTerrain(random.Next(255));
+
+            previousKeyboardState = currentKeyboardState;
         }
 
     }

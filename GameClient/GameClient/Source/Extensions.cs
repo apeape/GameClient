@@ -159,12 +159,12 @@ namespace GameClient
 
         public static VolumeDensity8 VolumeDensity8FromVector3(Vector3 dimensions)
         {
-            return new VolumeDensity8((ushort)dimensions.X, (ushort)dimensions.Y, (ushort)dimensions.Z);
+            return new VolumeDensity8((ushort)dimensions.X, (ushort)dimensions.Y, (ushort)dimensions.Z, (ushort)Math.Max(Math.Max(dimensions.X, dimensions.Y), dimensions.Z));
         }
 
         public static VolumeDensity8 VolumeDensity8Cubic(int cubicSize)
         {
-            return new VolumeDensity8((ushort)cubicSize, (ushort)cubicSize, (ushort)cubicSize);
+            return new VolumeDensity8((ushort)cubicSize, (ushort)cubicSize, (ushort)cubicSize, (ushort)cubicSize);
         }
 
         public static Region getEntireVolume(this VolumeDensity8 volume)
@@ -175,7 +175,7 @@ namespace GameClient
 
         public static Region getEntireVolumePaddedBorder(this VolumeDensity8 volume)
         {
-            const int padding = 1;
+            const short padding = 1;
             return new Region(new Vector3DInt16(-padding, -padding, -padding),
                 new Vector3DInt16((short)(volume.getWidth() + padding), (short)(volume.getHeight() + padding), (short)(volume.getDepth() + padding)));
         }

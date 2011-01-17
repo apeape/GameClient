@@ -91,7 +91,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="Nuclex.Graphics">
-      <HintPath>..\..\..\..\nuclex\release\Nuclex.Graphics.dll</HintPath>
+      <HintPath>References\Nuclex\Nuclex.Graphics.dll</HintPath>
     </Reference>
     <Reference Include="Nuclex.Input">
       <HintPath>..\..\..\..\nuclex\release\Nuclex.Input.dll</HintPath>
