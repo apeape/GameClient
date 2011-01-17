@@ -169,7 +169,8 @@ namespace GameClient
                             new Thread(delegate()
                                 {
                                     // generate perlin 3d noise
-                                    cell.PerlinNoise(random.Next(100));
+                                    const double terrainNoiseDensity = 25.0;
+                                    cell.PerlinNoise(terrainNoiseDensity, random.Next(100));
                                     // generate mesh for the cell
                                     TerrainCellMesh mesh = new TerrainCellMesh(terrainManager.GetCell(pos));
                                     mesh.Calculate();
@@ -222,10 +223,13 @@ namespace GameClient
 
                 terrainDrawContext.BasicEffect.VertexColorEnabled = true;
 
+                GraphicsDevice.BlendState = BlendState.Opaque;
+                GraphicsDevice.DepthStencilState = DepthStencilState.Default;
+                GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
+
                 RasterizerState rasterizerState = new RasterizerState();
                 //rasterizerState.FillMode = FillMode.WireFrame;
                 rasterizerState.CullMode = CullMode.CullClockwiseFace;
-
                 GraphicsDevice.RasterizerState = rasterizerState;
 
                 // using this we should be able to draw many terrain chunks in one draw call
@@ -253,6 +257,11 @@ namespace GameClient
                 });
                 //terrainBatch.Draw(terrainVertices, 0, terrainVertices.Length, terrainIndices, 0, terrainIndices.Length, PrimitiveType.TriangleList, terrainDrawContext);
                 terrainBatch.End();
+
+                GraphicsDevice.BlendState = BlendState.Opaque;
+                GraphicsDevice.DepthStencilState = DepthStencilState.Default;
+                GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
+                GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
             }
             else
                 debugDrawer.DrawString(new Vector2((Window.ClientBounds.Width / 2) - 50, Window.ClientBounds.Height / 2), "Generating terrain...", Color.Green);

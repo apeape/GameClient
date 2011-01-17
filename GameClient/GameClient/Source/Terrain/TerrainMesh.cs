@@ -30,16 +30,17 @@ namespace GameClient.Terrain
             // TODO: redo polyvox wrapper to generate these instead of using LINQ hilarity
             Vertices = surface.getVertices().Select(v =>
                 {
+                    const double colorDensity = 15.0;
                     Vector3 vector = v.position.ToVector3();
                     // this is super slow, need to do it per cell instead.
-                    byte noise = PolyVoxExtensions.PerlinNoise(v.position.ToVector3());
+                    byte noise = PolyVoxExtensions.PerlinNoise(v.position.ToVector3(), colorDensity);
                     return new VertexPositionColor(vector,
                         new Color(noise, noise, noise));
                 }).ToArray();
 
             // convert indices to xna format
-            //Indices = surface.getIndices().Select(i => (short)i).ToArray();
-            Indices = surface.getIndices().Select(i => (short)i).Reverse().ToArray();
+            Indices = surface.getIndices().Select(i => (short)i).ToArray();
+            //Indices = surface.getIndices().Select(i => (short)i).Reverse().ToArray();
         }
     }
 }

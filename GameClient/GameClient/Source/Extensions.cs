@@ -112,27 +112,27 @@ namespace GameClient
                 });
         }
 
-        public static void PerlinNoise(this VolumeDensity8 volume)
+        public static void PerlinNoise(this VolumeDensity8 volume, double densityDivisor)
         {
-            volume.PerlinNoise(99);
+            volume.PerlinNoise(densityDivisor, 99);
         }
 
-        public static void PerlinNoise(this VolumeDensity8 volume, int seed)
+        public static void PerlinNoise(this VolumeDensity8 volume, double densityDivisor, int seed)
         {
-            volume.ForEach(curPos => volume.setDensityAt(curPos, PerlinNoise(curPos, seed)));
+            volume.ForEach(curPos => volume.setDensityAt(curPos, PerlinNoise(curPos, densityDivisor, seed)));
         }
 
-        public static byte PerlinNoise(Vector3 pos)
+        public static byte PerlinNoise(Vector3 pos, double densityDivisor)
         {
-            return PerlinNoise(pos, 99);
+            return PerlinNoise(pos, densityDivisor, 99);
         }
 
-        public static byte PerlinNoise(Vector3 pos, int seed)
+        public static byte PerlinNoise(Vector3 pos, double densityDivisor, int seed)
         {
             PerlinNoise perlinNoise = new PerlinNoise(seed);
-            double widthDivisor = 1 / (double)25.0;
-            double heightDivisor = 1 / (double)25.0;
-            double depthDivisor = 1 / (double)25.0;
+            double widthDivisor = 1 / (double)densityDivisor;
+            double heightDivisor = 1 / (double)densityDivisor;
+            double depthDivisor = 1 / (double)densityDivisor;
             double v =
                 // First octave
                 (perlinNoise.Noise(2 * pos.X * widthDivisor, 2 * pos.Y * heightDivisor, -2 * pos.Z * depthDivisor) + 1) / 2 * 0.7 +
