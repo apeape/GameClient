@@ -22,6 +22,7 @@ using Nuclex.Graphics.Debugging;
 using PolyVoxCore;
 using GameClient.Util;
 using GameClient.Terrain;
+using Nuclex.UserInterface.Controls;
 
 namespace GameClient
 {
@@ -349,14 +350,71 @@ Regenerate: T
         /// </param>
         private void createDesktopControls(Screen mainScreen)
         {
+            WindowControl options = new WindowControl();
+            options.Title = "Options";
+            options.EnableDragging = true;
+            options.Bounds = new UniRectangle(
+                new UniScalar(1.0f, -210.0f), 10,
+                200, 230);
+            mainScreen.Desktop.Children.Add(options);
+
+            OptionControl fogToggle = new OptionControl();
+            fogToggle.Text = "Fog";
+            fogToggle.Bounds = new UniRectangle(10, 30, 100, 32);
+            fogToggle.Selected = terrainDrawContext.BasicEffect.FogEnabled;
+            fogToggle.Changed += delegate(object sender, EventArgs arguments) { terrainDrawContext.BasicEffect.FogEnabled = fogToggle.Selected; };
+            options.Children.Add(fogToggle);
+
+            OptionControl wireFrameToggle = new OptionControl();
+            wireFrameToggle.Text = "Wireframe";
+            wireFrameToggle.Bounds = new UniRectangle(10, 65, 100, 32);
+            wireFrameToggle.Selected = Wireframe;
+            wireFrameToggle.Changed += delegate(object sender, EventArgs arguments) { Wireframe = wireFrameToggle.Selected; };
+            options.Children.Add(wireFrameToggle);
+
+            LabelControl fogNearLabel = new LabelControl("Near");
+            fogNearLabel.Bounds = new UniRectangle(10, 100, 20, 24);
+            options.Children.Add(fogNearLabel);
+
+            HorizontalSliderControl fogNear = new HorizontalSliderControl();
+            fogNear.Bounds = new UniRectangle(50, 100, 140, 24);
+            fogNear.ThumbSize = 0.1f;
+            fogNear.ThumbPosition = terrainDrawContext.BasicEffect.FogStart / (float) 200;
+            fogNear.Moved += delegate(object sender, EventArgs arguments) { terrainDrawContext.BasicEffect.FogStart = fogNear.ThumbPosition * 200; };
+            options.Children.Add(fogNear);
+
+            LabelControl fogFarLabel = new LabelControl("Far");
+            fogFarLabel.Bounds = new UniRectangle(10, 125, 20, 24);
+            options.Children.Add(fogFarLabel);
+
+            HorizontalSliderControl fogFar = new HorizontalSliderControl();
+            fogFar.Bounds = new UniRectangle(50, 125, 140, 24);
+            fogFar.ThumbSize = 0.1f;
+            fogFar.ThumbPosition = terrainDrawContext.BasicEffect.FogEnd / (float)200;
+            fogFar.Moved += delegate(object sender, EventArgs arguments) { terrainDrawContext.BasicEffect.FogEnd = fogFar.ThumbPosition * 200; };
+            options.Children.Add(fogFar);
+
+            ButtonControl regenerateButton = new ButtonControl();
+            regenerateButton.Text = "Regenerate";
+            regenerateButton.Bounds = new UniRectangle(
+                new UniScalar(1.0f, -190.0f), new UniScalar(1.0f, -75.0f), 110, 32);
+            regenerateButton.Pressed += delegate(object sender, EventArgs arguments) { GenerateTerrain(random.Next(255)); };
+            options.Children.Add(regenerateButton);
+
+            ButtonControl resetButton = new ButtonControl();
+            resetButton.Text = "Reset Camera";
+            resetButton.Bounds = new UniRectangle(
+                new UniScalar(1.0f, -190.0f), new UniScalar(1.0f, -40.0f), 110, 32);
+            resetButton.Pressed += delegate(object sender, EventArgs arguments) { ResetCamera(); };
+            options.Children.Add(resetButton);
+
             // Button through which the user can quit the application
             ButtonControl quitButton = new ButtonControl();
             quitButton.Text = "Quit";
             quitButton.Bounds = new UniRectangle(
-              new UniScalar(1.0f, -84.0f), new UniScalar(1.0f, -38.0f), 80, 32
-            );
+                new UniScalar(1.0f, -70.0f), new UniScalar(1.0f, -40.0f), 60, 32);
             quitButton.Pressed += delegate(object sender, EventArgs arguments) { Exit(); };
-            mainScreen.Desktop.Children.Add(quitButton);
+            options.Children.Add(quitButton);
         }
 
 
@@ -425,9 +483,7 @@ Regenerate: T
             if (currentGamePadState.Buttons.RightStick == ButtonState.Pressed ||
                 currentKeyboardState.IsKeyDown(Keys.R))
             {
-                cameraArc = 0;
-                cameraRotation = 0;
-                cameraDistance = 100;
+                ResetCamera();
             }
 
             if (!previousKeyboardState.IsKeyDown(Keys.Q) && currentKeyboardState.IsKeyDown(Keys.Q))
@@ -440,6 +496,13 @@ Regenerate: T
                 GenerateTerrain(random.Next(255));
 
             previousKeyboardState = currentKeyboardState;
+        }
+
+        private void ResetCamera()
+        {
+            cameraArc = 0;
+            cameraRotation = 0;
+            cameraDistance = 100;
         }
 
     }
