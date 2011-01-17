@@ -119,25 +119,32 @@ namespace GameClient
 
         public static void PerlinNoise(this VolumeDensity8 volume, int seed)
         {
-            PerlinNoise perlinNoise = new PerlinNoise(seed);
-            double widthDivisor = 1 / (double)10.0;
-            double heightDivisor = 1 / (double)10.0;
-            double depthDivisor = 1 / (double)10.0;
-            volume.ForEach(curPos =>
-            {
-                double v =
-                    // First octave
-                    (perlinNoise.Noise(2 * curPos.X * widthDivisor, 2 * curPos.Y * heightDivisor, -0.5 * curPos.Z * depthDivisor) + 1) / 2 * 0.7 +
-                    // Second octave
-                    (perlinNoise.Noise(4 * curPos.X * widthDivisor, 4 * curPos.Y * heightDivisor, 0.5 * curPos.Z * depthDivisor) + 1) / 2 * 0.2 +
-                    // Third octave
-                    (perlinNoise.Noise(8 * curPos.X * widthDivisor, 8 * curPos.Y * heightDivisor, +0.5 * curPos.Z * depthDivisor) + 1) / 2 * 0.1;
+            volume.ForEach(curPos => volume.setDensityAt(curPos, PerlinNoise(curPos, seed)));
+        }
 
-                // clamp to 0 - 1
-                v = Math.Min(1, Math.Max(0, v));
-                byte density = (byte)(v * 255);
-                volume.setDensityAt(curPos, density);
-            });
+        public static byte PerlinNoise(Vector3 pos)
+        {
+            return PerlinNoise(pos, 99);
+        }
+
+        public static byte PerlinNoise(Vector3 pos, int seed)
+        {
+            PerlinNoise perlinNoise = new PerlinNoise(seed);
+            double widthDivisor = 1 / (double)25.0;
+            double heightDivisor = 1 / (double)25.0;
+            double depthDivisor = 1 / (double)25.0;
+            double v =
+                // First octave
+                (perlinNoise.Noise(2 * pos.X * widthDivisor, 2 * pos.Y * heightDivisor, -2 * pos.Z * depthDivisor) + 1) / 2 * 0.7 +
+                // Second octave
+                (perlinNoise.Noise(4 * pos.X * widthDivisor, 4 * pos.Y * heightDivisor, 2 * pos.Z * depthDivisor) + 1) / 2 * 0.2 +
+                // Third octave
+                (perlinNoise.Noise(8 * pos.X * widthDivisor, 8 * pos.Y * heightDivisor, 2 * pos.Z * depthDivisor) + 1) / 2 * 0.1;
+
+            // clamp to 0 - 1
+            v = Math.Min(1, Math.Max(0, v));
+            byte density = (byte)(v * 255);
+            return density;
         }
 
         public static VolumeDensity8 VolumeDensity8FromVector3(Vector3 dimensions)
@@ -161,6 +168,11 @@ namespace GameClient
             TerrainCellMesh mesh = new TerrainCellMesh(volume);
             mesh.Calculate();
             return mesh;
+        }
+
+        public static Vector3 ToVector3(this Vector3DFloat v)
+        {
+            return new Vector3(v.getX(), v.getY(), v.getZ());
         }
     }
 }

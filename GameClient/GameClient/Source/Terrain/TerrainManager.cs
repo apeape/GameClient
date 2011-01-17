@@ -13,6 +13,8 @@ namespace GameClient.Terrain
         public Vector3 terrainDimensions { get; set; }
         public Vector3 cellDimensions { get; set; }
         public TerrainCellMesh[, ,] terrainCellMeshes { get; set; }
+        public bool Initialized { get; set; }
+        public int cellsInitialized { get; set; }
 
         public TerrainManager(int cubicSize, int cubicCellSize)
             : this(cubicSize, cubicSize, cubicSize, cubicCellSize, cubicCellSize, cubicCellSize)
@@ -31,6 +33,8 @@ namespace GameClient.Terrain
 
         public TerrainManager(int width, int height, int depth, int cellWidth, int cellHeight, int cellDepth)
         {
+            Initialized = false;
+            cellsInitialized = 0;
             terrainDimensions = new Vector3(width, height, depth);
             this.cellDimensions = new Vector3(cellWidth, cellHeight, cellDepth);
             terrainCells = new VolumeDensity8[width, height, depth];

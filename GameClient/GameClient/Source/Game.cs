@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
@@ -55,6 +56,8 @@ namespace GameClient
         private TerrainManager terrainManager;
 
         const int cellSize = 32;
+
+        private bool Initialized = false;
         
 
         public Game1()
@@ -142,6 +145,7 @@ namespace GameClient
             );
 
             base.Initialize();
+            Initialized = true;
         }
 
         /// <summary>
@@ -151,18 +155,29 @@ namespace GameClient
         protected override void LoadContent()
         {
             // TODO: use this.Content to load your game content here
+
             const int terrainSize = 2;
             terrainManager = new TerrainManager(terrainSize, cellSize);
             terrainManager.InitializeCells();
-            terrainManager.ForEachCell( (pos, cell) =>
+
+            // generate terrain in a new thread
+            new Thread(delegate()
                 {
-                    // generate perlin 3d noise
-                    cell.PerlinNoise(random.Next(100));
-                    // generate mesh for the cell
-                    TerrainCellMesh mesh = new TerrainCellMesh(terrainManager.GetCell(pos));
-                    mesh.Calculate();
-                    terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z] = mesh;
-                });
+                    terrainManager.ForEachCell((pos, cell) =>
+                        {
+                            // do each cell in its own thread
+                            new Thread(delegate()
+                                {
+                                    // generate perlin 3d noise
+                                    cell.PerlinNoise(random.Next(100));
+                                    // generate mesh for the cell
+                                    TerrainCellMesh mesh = new TerrainCellMesh(terrainManager.GetCell(pos));
+                                    mesh.Calculate();
+                                    terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z] = mesh;
+                                    terrainManager.cellsInitialized++;
+                                }).Start();
+                        });
+                }).Start();
         }
 
         /// <summary>
@@ -181,6 +196,10 @@ namespace GameClient
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
+            if (!terrainManager.Initialized)
+                if (terrainManager.cellsInitialized == terrainManager.terrainCells.Length)
+                    terrainManager.Initialized = true;
+
             //camera.HandleControls(gameTime);
             UpdateCamera(gameTime);
 
@@ -195,39 +214,48 @@ namespace GameClient
 
         private void DrawTerrain()
         {
-            Matrix worldMatrix = Matrix.CreateScale(1.0f, 1.0f, 1.0f)
-                * Matrix.CreateRotationY(MathHelper.Pi)
-                * Matrix.CreateTranslation(new Vector3(0, 0, 0));
-
-            terrainDrawContext.BasicEffect.VertexColorEnabled = true;
-
-            GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
-
-            // using this we should be able to draw many terrain chunks in one draw call
-            terrainBatch.Begin(QueueingStrategy.Deferred);
-            
-            terrainManager.ForEachCellMesh((pos, cellMesh) =>
+            if (terrainManager.Initialized)
             {
-                Matrix terrainPos = Matrix.CreateScale(1.0f, 1.0f, 1.0f)
+                Matrix worldMatrix = Matrix.CreateScale(1.0f, 1.0f, 1.0f)
                     * Matrix.CreateRotationY(MathHelper.Pi)
-                    * Matrix.CreateTranslation(pos * cellSize);
+                    * Matrix.CreateTranslation(new Vector3(0, 0, 0));
 
-                terrainDrawContext.BasicEffect.View = this.camera.View;
-                terrainDrawContext.BasicEffect.Projection = this.camera.Projection;
-                terrainDrawContext.BasicEffect.World = terrainPos * worldMatrix;
+                terrainDrawContext.BasicEffect.VertexColorEnabled = true;
 
-                terrainBatch.Draw(
-                    cellMesh.Vertices,
-                    0,
-                    cellMesh.Vertices.Length,
-                    cellMesh.Indices,
-                    0,
-                    cellMesh.Indices.Length,
-                    PrimitiveType.TriangleList,
-                    terrainDrawContext);
-            });
-            //terrainBatch.Draw(terrainVertices, 0, terrainVertices.Length, terrainIndices, 0, terrainIndices.Length, PrimitiveType.TriangleList, terrainDrawContext);
-            terrainBatch.End();
+                RasterizerState rasterizerState = new RasterizerState();
+                //rasterizerState.FillMode = FillMode.WireFrame;
+                rasterizerState.CullMode = CullMode.CullClockwiseFace;
+
+                GraphicsDevice.RasterizerState = rasterizerState;
+
+                // using this we should be able to draw many terrain chunks in one draw call
+                terrainBatch.Begin(QueueingStrategy.Deferred);
+
+                terrainManager.ForEachCellMesh((pos, cellMesh) =>
+                {
+                    Matrix terrainPos = Matrix.CreateScale(1.0f, 1.0f, 1.0f)
+                        * Matrix.CreateRotationY(MathHelper.Pi)
+                        * Matrix.CreateTranslation(pos * cellSize);
+
+                    terrainDrawContext.BasicEffect.View = this.camera.View;
+                    terrainDrawContext.BasicEffect.Projection = this.camera.Projection;
+                    terrainDrawContext.BasicEffect.World = terrainPos * worldMatrix;
+
+                    terrainBatch.Draw(
+                        cellMesh.Vertices,
+                        0,
+                        cellMesh.Vertices.Length,
+                        cellMesh.Indices,
+                        0,
+                        cellMesh.Indices.Length,
+                        PrimitiveType.TriangleList,
+                        terrainDrawContext);
+                });
+                //terrainBatch.Draw(terrainVertices, 0, terrainVertices.Length, terrainIndices, 0, terrainIndices.Length, PrimitiveType.TriangleList, terrainDrawContext);
+                terrainBatch.End();
+            }
+            else
+                debugDrawer.DrawString(new Vector2((Window.ClientBounds.Width / 2) - 50, Window.ClientBounds.Height / 2), "Generating terrain...", Color.Green);
         }
 
         /// <summary>
@@ -236,7 +264,8 @@ namespace GameClient
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.CornflowerBlue);
+            //GraphicsDevice.Clear(Color.CornflowerBlue);
+            GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.Black, 1.0f, 0);
 
             // Compute camera matrices.
             camera.View = Matrix.CreateTranslation(0, -40, 0) *
@@ -250,6 +279,9 @@ namespace GameClient
             terrainDrawContext.BasicEffect.World = Matrix.Identity;
 
             DrawTerrain();
+
+            debugDrawer.Draw(gameTime);
+            debugDrawer.Reset();
 
             base.Draw(gameTime);
         }
