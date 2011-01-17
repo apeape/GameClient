@@ -117,9 +117,19 @@ namespace GameClient
             volume.PerlinNoise(densityDivisor, 99);
         }
 
+        public static void PerlinNoise(this VolumeDensity8 volume, Vector3 offset, double densityDivisor)
+        {
+            volume.PerlinNoise(offset, densityDivisor, 99);
+        }
+
         public static void PerlinNoise(this VolumeDensity8 volume, double densityDivisor, int seed)
         {
             volume.ForEach(curPos => volume.setDensityAt(curPos, PerlinNoise(curPos, densityDivisor, seed)));
+        }
+
+        public static void PerlinNoise(this VolumeDensity8 volume, Vector3 offset, double densityDivisor, int seed)
+        {
+            volume.ForEach(curPos => volume.setDensityAt(curPos, PerlinNoise(curPos - offset, densityDivisor, seed)));
         }
 
         public static byte PerlinNoise(Vector3 pos, double densityDivisor)
@@ -161,6 +171,13 @@ namespace GameClient
         {
             return new Region(new Vector3DInt16(0, 0, 0),
                 new Vector3DInt16((short)volume.getWidth(), (short)volume.getHeight(), (short)volume.getDepth()));
+        }
+
+        public static Region getEntireVolumePaddedBorder(this VolumeDensity8 volume)
+        {
+            const int padding = 1;
+            return new Region(new Vector3DInt16(-padding, -padding, -padding),
+                new Vector3DInt16((short)(volume.getWidth() + padding), (short)(volume.getHeight() + padding), (short)(volume.getDepth() + padding)));
         }
 
         public static TerrainCellMesh GetMesh(this VolumeDensity8 volume)

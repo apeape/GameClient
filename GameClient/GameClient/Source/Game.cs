@@ -56,34 +56,35 @@ namespace GameClient
         private TerrainManager terrainManager;
 
         const int cellSize = 32;
+        const int terrainSize = 2;
 
         private bool Initialized = false;
         
 
         public Game1()
         {
-            this.graphics = new GraphicsDeviceManager(this);
-            this.input = new InputManager(Services, Window.Handle);
-            this.gui = new GuiManager(Services);
+            graphics = new GraphicsDeviceManager(this);
+            input = new InputManager(Services, Window.Handle);
+            gui = new GuiManager(Services);
             Content.RootDirectory = "Content";
 
-            var capturer = new Nuclex.UserInterface.Input.DefaultInputCapturer(this.input);
+            var capturer = new Nuclex.UserInterface.Input.DefaultInputCapturer(input);
             capturer.ChangePlayerIndex(ExtendedPlayerIndex.Five);
-            this.gui.InputCapturer = capturer;
+            gui.InputCapturer = capturer;
 
             // Automatically query the input devices once per update
-            Components.Add(this.input);
+            Components.Add(input);
 
             // You can either add the GUI to the Components collection to have it render
             // automatically, or you can call the GuiManager's Draw() method yourself
             // at the appropriate place if you need more control.
-            Components.Add(this.gui);
+            Components.Add(gui);
 
             IsMouseVisible = true;
             Window.AllowUserResizing = true;
 
-            this.graphics.PreferredBackBufferWidth = 1024;
-            this.graphics.PreferredBackBufferHeight = 768;
+            graphics.PreferredBackBufferWidth = 1024;
+            graphics.PreferredBackBufferHeight = 768;
         }
 
         /// <summary>
@@ -94,22 +95,22 @@ namespace GameClient
         /// </summary>
         protected override void Initialize()
         {
-            terrainBatch = new PrimitiveBatch<VertexPositionColor>(this.graphics.GraphicsDevice);
+            terrainBatch = new PrimitiveBatch<VertexPositionColor>(graphics.GraphicsDevice);
             terrainDrawContext = new BasicEffectDrawContext(graphics.GraphicsDevice);
             terrainDrawContext.BasicEffect.FogEnabled = true;
             terrainDrawContext.BasicEffect.FogColor = Color.Black.ToVector3();
             terrainDrawContext.BasicEffect.FogStart = 50;
             terrainDrawContext.BasicEffect.FogEnd = 250;
 
-            this.contentManager = new ContentManager(
-                GraphicsDeviceServiceHelper.MakePrivateServiceProvider(this.graphics),
+            contentManager = new ContentManager(
+                GraphicsDeviceServiceHelper.MakePrivateServiceProvider(graphics),
                 Content.RootDirectory
             );
 
-            this.debugDrawer = new DebugDrawer(this.graphics);
+            debugDrawer = new DebugDrawer(graphics);
 
             // Displays a FPS counter
-            Components.Add(new FpsComponent(this.graphics, Content.RootDirectory));
+            Components.Add(new FpsComponent(graphics, Content.RootDirectory));
 
             // Create a new screen. Screens manage the state of a GUI and accept input
             // notifications. If you have an in-game computer display where you want
@@ -117,7 +118,7 @@ namespace GameClient
             // separate the state of the in-game computer from your game's own GUI :)
             Viewport viewport = GraphicsDevice.Viewport;
             Screen mainScreen = new Screen(viewport.Width, viewport.Height);
-            this.gui.Screen = mainScreen;
+            gui.Screen = mainScreen;
 
             // Each screen has a 'desktop' control. This invisible control by default
             // stretches across the whole screen and serves as the root of the control
@@ -135,7 +136,7 @@ namespace GameClient
             createDesktopControls(mainScreen);
 
             // Create a new camera with a perspective projection matrix
-            this.camera = new Camera(
+            camera = new Camera(
                 Matrix.CreateLookAt(
                     new Vector3(0.0f, 0.0f, -100.0f), // camera location
                     new Vector3(0.0f, 0.0f, 0.0f), // camera focal point
@@ -158,9 +159,7 @@ namespace GameClient
         /// </summary>
         protected override void LoadContent()
         {
-            // TODO: use this.Content to load your game content here
-
-            const int terrainSize = 2;
+            // TODO: use Content to load your game content here
             terrainManager = new TerrainManager(terrainSize, cellSize);
             terrainManager.InitializeCells();
 
@@ -173,8 +172,10 @@ namespace GameClient
                             new Thread(delegate()
                                 {
                                     // generate perlin 3d noise
-                                    const double terrainNoiseDensity = 25.0;
-                                    cell.PerlinNoise(terrainNoiseDensity, random.Next(100));
+                                    const double terrainNoiseDensity = 40.0;
+                                    Vector3 noiseOffset = pos;
+                                    noiseOffset.Y *= -1;
+                                    cell.PerlinNoise(noiseOffset * cellSize, terrainNoiseDensity);
                                     // generate mesh for the cell
                                     TerrainCellMesh mesh = new TerrainCellMesh(terrainManager.GetCell(pos));
                                     mesh.Calculate();
@@ -210,7 +211,7 @@ namespace GameClient
 
             // Allows the game to exit
             //if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
-                //this.Exit();
+                //Exit();
 
             // TODO: Add your update logic here
 
@@ -241,12 +242,12 @@ namespace GameClient
 
                 terrainManager.ForEachCellMesh((pos, cellMesh) =>
                 {
-                    Matrix terrainPos = Matrix.CreateScale(1.0f, 1.0f, 1.0f)
+                    Matrix terrainPos = Matrix.CreateScale(1.025f, 1.025f, 1.025f)
                         * Matrix.CreateRotationY(MathHelper.Pi)
                         * Matrix.CreateTranslation(pos * cellSize);
 
-                    terrainDrawContext.BasicEffect.View = this.camera.View;
-                    terrainDrawContext.BasicEffect.Projection = this.camera.Projection;
+                    terrainDrawContext.BasicEffect.View = camera.View;
+                    terrainDrawContext.BasicEffect.Projection = camera.Projection;
                     terrainDrawContext.BasicEffect.World = terrainPos * worldMatrix;
 
                     terrainBatch.Draw(
@@ -287,13 +288,12 @@ namespace GameClient
                           Matrix.CreateLookAt(new Vector3(0, 0, -cameraDistance),
                                               new Vector3(0, 0, 0), Vector3.Up);
 
-            terrainDrawContext.BasicEffect.View = this.camera.View;
-            terrainDrawContext.BasicEffect.Projection = this.camera.Projection;
+            terrainDrawContext.BasicEffect.View = camera.View;
+            terrainDrawContext.BasicEffect.Projection = camera.Projection;
             terrainDrawContext.BasicEffect.World = Matrix.Identity;
 
             DrawTerrain();
 
-            debugDrawer.DrawSolidBox(Vector3.Zero, new Vector3(50, 50, 50), Color.Green);
             debugDrawer.Draw(gameTime);
             debugDrawer.Reset();
 

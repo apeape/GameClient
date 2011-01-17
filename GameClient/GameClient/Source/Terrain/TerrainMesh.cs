@@ -19,7 +19,9 @@ namespace GameClient.Terrain
         public TerrainCellMesh(VolumeDensity8 volume)
         {
             surface = new SurfaceMeshPositionMaterialNormal();
-            surfaceExtractor = new SurfaceExtractorDensity8(volume, volume.getEntireVolume(), surface);
+
+            volume.setBorderValue(new Density8(0));
+            surfaceExtractor = new SurfaceExtractorDensity8(volume, volume.getEntireVolumePaddedBorder(), surface);
         }
 
         public void Calculate()
