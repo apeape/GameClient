@@ -20,9 +20,9 @@ namespace GameClient
         {
             Vector3 pos;
             // loop over entire volume
-            for (ushort z = 0; z < volume.getWidth(); z++)
+            for (ushort z = 0; z < volume.getDepth(); z++)
                 for (ushort y = 0; y < volume.getHeight(); y++)
-                    for (ushort x = 0; x < volume.getDepth(); x++)
+                    for (ushort x = 0; x < volume.getWidth(); x++)
                     {
                         pos = new Vector3(x, y, z);
                         action(pos);

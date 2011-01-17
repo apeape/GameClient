@@ -45,7 +45,7 @@ namespace GameClient.Terrain
         {
             Vector3 pos;
             // loop over every terrain cell
-            for (int z = 0; z < terrainDimensions.X; z++)
+            for (int z = 0; z < terrainDimensions.Z; z++)
                 for (int y = 0; y < terrainDimensions.Y; y++)
                     for (int x = 0; x < terrainDimensions.X; x++)
                     {
@@ -58,7 +58,7 @@ namespace GameClient.Terrain
         {
             Vector3 pos;
             // loop over every terrain cell
-            for (int z = 0; z < terrainDimensions.X; z++)
+            for (int z = 0; z < terrainDimensions.Z; z++)
                 for (int y = 0; y < terrainDimensions.Y; y++)
                     for (int x = 0; x < terrainDimensions.X; x++)
                     {
@@ -71,7 +71,7 @@ namespace GameClient.Terrain
         {
             Vector3 pos;
             // loop over every terrain cell
-            for (int z = 0; z < terrainDimensions.X; z++)
+            for (int z = 0; z < terrainDimensions.Z; z++)
                 for (int y = 0; y < terrainDimensions.Y; y++)
                     for (int x = 0; x < terrainDimensions.X; x++)
                     {

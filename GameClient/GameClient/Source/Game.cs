@@ -179,6 +179,7 @@ namespace GameClient
                     // do each cell in its own thread
                     new Thread(delegate()
                     {
+                        /*
                         // generate perlin 3d noise
                         Vector3 noiseOffset = pos;
                         noiseOffset.Y *= -1;
@@ -190,7 +191,12 @@ namespace GameClient
                         {
                             throw new Exception("Problem generating mesh from volume!");
                         }
-                        terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z] = mesh;
+                        terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z] = mesh;*/
+
+                        terrainManager.terrainCells[(int)pos.X, (int)pos.Y, (int)pos.Z].CreateSphere(18, 255);
+                        terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z] = new TerrainCellMesh(terrainManager.GetCell(pos));
+                        terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z].Calculate();
+
                         terrainManager.cellsInitialized++;
                     }).Start();
                 });
@@ -210,7 +216,7 @@ namespace GameClient
         protected override void LoadContent()
         {
             // TODO: use Content to load your game content here
-            GenerateTerrain(14);
+            GenerateTerrain(20);
         }
 
         /// <summary>
