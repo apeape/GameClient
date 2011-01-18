@@ -53,7 +53,7 @@ namespace GameClient.Terrain
                 }).ToArray();*/
 
             PositionMaterialNormalVector vertices = surface.getVertices();
-            if (vertices.Count == 0)
+            if (vertices.Count == 0 || graphicsDevice == null)
             {
                 //Console.WriteLine("skipping empty cell mesh");
             }

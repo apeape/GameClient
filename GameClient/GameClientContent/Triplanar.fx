@@ -1,6 +1,7 @@
 float4x4 World;
 float4x4 View;
 float4x4 Projection;
+float4 lightDirection = {-0.7, 1, 1, 0};
 
 texture ColorMap;
 sampler ColorMapSampler = sampler_state
@@ -72,7 +73,14 @@ float4 PixelShaderFunction(VertexShaderOutput input) : COLOR0
     float4 cXZ = tex2D(ColorMapSampler, input.worldPosition.xz * scale);
     float4 cYZ = tex2D(ColorMapSampler, input.worldPosition.yz * scale);
 
-    return cXY*mXY + cXZ*mXZ + cYZ*mYZ;
+	// directional + ambient light
+	float4 light = normalize(lightDirection);
+	//float4 light = normalize(-lightDirection);
+	float ldn = dot(light, input.Normal);
+	ldn = max(0, ldn);
+
+	float ambient = 0.2f;
+    return cXY*mXY + cXZ*mXZ + cYZ*mYZ  * (ambient + ldn);
     //return float4(1, 0, 0, 1);
 }
 

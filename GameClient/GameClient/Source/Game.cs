@@ -376,7 +376,7 @@ namespace GameClient
                 GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
 
                 debugDrawer.DrawString(new Vector2(20, 200),
-                    "Generated " + terrainManager.terrainCells.Length + " " + terrainManager.terrainCells.GetUpperBound(0) + 1 +
+                    "Generated " + terrainManager.terrainCells.Length + " " + terrainManager.cellDimensions.X +
                     "^3 cells in " + terrainGenerationTimer.Elapsed.TotalSeconds.ToString("#.###") + " sec" +
                     "\nVertices: " + vertexCount,
                     Color.LightYellow);
@@ -440,7 +440,7 @@ CellRes:        " + cellRes + "^3" +
             options.EnableDragging = true;
             options.Bounds = new UniRectangle(
                 new UniScalar(1.0f, -210.0f), 10,
-                200, 370);
+                200, 275);
             mainScreen.Desktop.Children.Add(options);
 
             OptionControl wireFrameToggle = new OptionControl();
