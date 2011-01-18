@@ -75,7 +75,9 @@ namespace GameClient
 
         private Stopwatch terrainGenerationTimer;
 
-        private bool cubicTerrain = false;
+        private bool cubicTerrain = true;
+
+        private float cellGap = 1.25f;
 
         public Game1()
         {
@@ -303,7 +305,7 @@ namespace GameClient
 
                 // using this we should be able to draw many terrain chunks in one draw call
 
-                float seamCorrection = 1.25f / cellSize;
+                float seamCorrection = cubicTerrain ? 0.0f : cellGap / cellSize;
                 foreach (var cellMesh in terrainManager.terrainCellMeshes)
                 {
                     terrainBatch.Begin(QueueingStrategy.Deferred);
@@ -395,7 +397,7 @@ Regenerate: T
             options.EnableDragging = true;
             options.Bounds = new UniRectangle(
                 new UniScalar(1.0f, -210.0f), 10,
-                200, 285);
+                200, 310);
             mainScreen.Desktop.Children.Add(options);
 
             OptionControl wireFrameToggle = new OptionControl();
@@ -436,13 +438,26 @@ Regenerate: T
             fogFar.Moved += delegate(object sender, EventArgs arguments) { terrainDrawContext.BasicEffect.FogEnd = fogFar.ThumbPosition * fogRange; };
             options.Children.Add(fogFar);
 
+
+            LabelControl cellGapLabel = new LabelControl("Gap");
+            cellGapLabel.Bounds = new UniRectangle(10, 150, 20, 24);
+            options.Children.Add(cellGapLabel);
+
+            HorizontalSliderControl cellGapControl = new HorizontalSliderControl();
+            cellGapControl.Bounds = new UniRectangle(50, 150, 140, 24);
+            cellGapControl.ThumbSize = 0.1f;
+            const float cellGapRange = 5.0f;
+            cellGapControl.ThumbPosition = cellGap / cellGapRange;
+            cellGapControl.Moved += delegate(object sender, EventArgs arguments) { cellGap = cellGapControl.ThumbPosition * cellGapRange; };
+            options.Children.Add(cellGapControl);
+
             LabelControl densityLabel = new LabelControl("Density");
-            densityLabel.Bounds = new UniRectangle(10, 150, 20, 24);
+            densityLabel.Bounds = new UniRectangle(10, 175, 20, 24);
             options.Children.Add(densityLabel);
 
             const float densityRange = 100.0f;
             HorizontalSliderControl densityControl = new HorizontalSliderControl();
-            densityControl.Bounds = new UniRectangle(60, 150, 130, 24);
+            densityControl.Bounds = new UniRectangle(60, 175, 130, 24);
             densityControl.ThumbSize = 0.1f;
             densityControl.ThumbPosition = terrainNoiseDensity / densityRange;
             densityControl.Moved += delegate(object sender, EventArgs arguments) { terrainNoiseDensity = densityControl.ThumbPosition * densityRange; };
@@ -450,7 +465,7 @@ Regenerate: T
 
             OptionControl cubicToggle = new OptionControl();
             cubicToggle.Text = "Cubic (requires regen)";
-            cubicToggle.Bounds = new UniRectangle(10, 175, 100, 32);
+            cubicToggle.Bounds = new UniRectangle(10, 200, 100, 32);
             cubicToggle.Selected = cubicTerrain;
             cubicToggle.Changed += delegate(object sender, EventArgs arguments) { cubicTerrain = cubicToggle.Selected; };
             options.Children.Add(cubicToggle);
