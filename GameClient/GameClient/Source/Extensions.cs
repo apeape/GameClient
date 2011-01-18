@@ -147,9 +147,9 @@ namespace GameClient
                 // First octave
                 (perlinNoise.Noise(2 * pos.X * widthDivisor, 2 * pos.Y * heightDivisor, -2 * pos.Z * depthDivisor) + 1) / 2 * 0.7 +
                 // Second octave
-                (perlinNoise.Noise(4 * pos.X * widthDivisor, 4 * pos.Y * heightDivisor, 2 * pos.Z * depthDivisor) + 1) / 2 * 0.2 +
+                (perlinNoise.Noise(4 * pos.X * widthDivisor, 4 * pos.Y * heightDivisor, 2 * pos.Z * depthDivisor) + 1) / 2 * 0.2;
                 // Third octave
-                (perlinNoise.Noise(8 * pos.X * widthDivisor, 8 * pos.Y * heightDivisor, 2 * pos.Z * depthDivisor) + 1) / 2 * 0.1;
+                //(perlinNoise.Noise(8 * pos.X * widthDivisor, 8 * pos.Y * heightDivisor, 2 * pos.Z * depthDivisor) + 1) / 2 * 0.1;
 
             // clamp to 0 - 1
             v = Math.Min(1, Math.Max(0, v));

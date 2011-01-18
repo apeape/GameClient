@@ -57,10 +57,10 @@ namespace GameClient
 
         private TerrainManager terrainManager;
 
-        const int cellSize = 32;
-        const int terrainSize = 2;
+        const int cellSize = 8;
+        const int terrainSize = 5;
 
-        private float terrainNoiseDensity = 40.0f;
+        private float terrainNoiseDensity = 30.0f;
 
         //private bool Initialized = false;
         private bool Wireframe = false;
@@ -72,6 +72,8 @@ namespace GameClient
         IndexBuffer terrainIndexbuffer;
         // Create a Vertex Buffer
         VertexBuffer terrainVertexBuffer;
+
+        private Stopwatch terrainGenerationTimer;
 
 
         public Game1()
@@ -111,9 +113,9 @@ namespace GameClient
             terrainBatch = new PrimitiveBatch<VertexPositionColor>(graphics.GraphicsDevice);
             terrainDrawContext = new BasicEffectDrawContext(graphics.GraphicsDevice);
             terrainDrawContext.BasicEffect.FogEnabled = true;
-            terrainDrawContext.BasicEffect.FogColor = new Color(20, 20, 30).ToVector3();
+            terrainDrawContext.BasicEffect.FogColor = new Color(20, 20, 20).ToVector3();
             terrainDrawContext.BasicEffect.FogStart = 50;
-            terrainDrawContext.BasicEffect.FogEnd = 100;
+            terrainDrawContext.BasicEffect.FogEnd = 200;
 
             contentManager = new ContentManager(
                 GraphicsDeviceServiceHelper.MakePrivateServiceProvider(graphics),
@@ -178,36 +180,49 @@ namespace GameClient
             terrainManager.Initialized = false;
             terrainManager.cellsInitialized = 0;
 
+            object terrainLock = new object();
+
+            terrainGenerationTimer = new Stopwatch();
+            terrainGenerationTimer.Start();
+
             // generate terrain
-            terrainManager.ForEachCell((pos, cell) =>
-            {
-                // do each cell in its own thread
-                new Thread(delegate()
+            Thread terrainProcessing = new Thread(delegate()
                 {
-                    // generate perlin 3d noise
-                    Vector3 noiseOffset = pos;
-                    noiseOffset.Y *= -1;
-                    cell.PerlinNoise(noiseOffset * cellSize, terrainNoiseDensity, seed);
-                    // generate mesh for the cell
-                    TerrainCellMesh mesh = new TerrainCellMesh(terrainManager.GetCell(pos), pos);
-                    mesh.Calculate();
-                    if (mesh == null)
+                    terrainManager.ForEachCell((pos, cell) =>
                     {
-                        throw new Exception("Problem generating mesh from volume!");
-                    }
-                    terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z] = mesh;
+                        // do each cell in its own thread
+                        Thread t = new Thread(delegate()
+                        {
+                            // generate perlin 3d noise
+                            Vector3 noiseOffset = pos;
+                            noiseOffset.Y *= -1;
+                            cell.PerlinNoise(noiseOffset * cellSize, terrainNoiseDensity, seed);
+                            // generate mesh for the cell
+                            TerrainCellMesh mesh = new TerrainCellMesh(terrainManager.GetCell(pos), pos);
+                            mesh.Calculate();
+                            if (mesh == null)
+                            {
+                                throw new Exception("Problem generating mesh from volume!");
+                            }
+                            terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z] = mesh;
 
-                    /*
-                    terrainManager.terrainCells[(int)pos.X, (int)pos.Y, (int)pos.Z].ForEach(voxelPos =>
-                        terrainManager.terrainCells[(int)pos.X, (int)pos.Y, (int)pos.Z].setDensityAt(voxelPos, 255));
+                            /*
+                            terrainManager.terrainCells[(int)pos.X, (int)pos.Y, (int)pos.Z].ForEach(voxelPos =>
+                                terrainManager.terrainCells[(int)pos.X, (int)pos.Y, (int)pos.Z].setDensityAt(voxelPos, 255));
 
-                    //terrainManager.terrainCells[(int)pos.X, (int)pos.Y, (int)pos.Z].CreateSphere(19, 255);
-                    terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z] = new TerrainCellMesh(terrainManager.GetCell(pos), pos);
-                    terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z].Calculate();
-                    */
-                    terrainManager.cellsInitialized++;
-                }).Start();
-            });
+                            //terrainManager.terrainCells[(int)pos.X, (int)pos.Y, (int)pos.Z].CreateSphere(19, 255);
+                            terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z] = new TerrainCellMesh(terrainManager.GetCell(pos), pos);
+                            terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z].Calculate();
+                            */
+                            lock (terrainLock)
+                                terrainManager.cellsInitialized++;
+                        });
+                        t.IsBackground = true;
+                        t.Start();
+                    });
+                });
+            terrainProcessing.IsBackground = true;
+            terrainProcessing.Start();
 
             /*
             // test sphere
@@ -245,7 +260,10 @@ namespace GameClient
         {
             if (!terrainManager.Initialized)
                 if (terrainManager.cellsInitialized == terrainManager.terrainCells.Length)
+                {
                     terrainManager.Initialized = true;
+                    terrainGenerationTimer.Stop();
+                }
 
             //camera.HandleControls(gameTime);
             UpdateCamera(gameTime);
@@ -263,7 +281,7 @@ namespace GameClient
         {
             if (terrainManager.Initialized)
             {
-                Matrix worldMatrix = Matrix.CreateScale(1.0f, 1.0f, 1.0f)
+                Matrix worldMatrix = Matrix.CreateScale(1.0f)
                     * Matrix.CreateRotationY(MathHelper.Pi)
                     * Matrix.CreateTranslation(new Vector3(0, 0, 0));
 
@@ -283,13 +301,13 @@ namespace GameClient
                 GraphicsDevice.RasterizerState = rasterizerState;
 
                 // using this we should be able to draw many terrain chunks in one draw call
-                
 
+                float seamCorrection = 1.25f / cellSize;
                 foreach (var cellMesh in terrainManager.terrainCellMeshes)
                 {
                     terrainBatch.Begin(QueueingStrategy.Deferred);
-                    //Matrix terrainPos = Matrix.CreateScale(1.025f, 1.025f, 1.025f)
-                    Matrix terrainPos = Matrix.CreateScale(1.03f, 1.03f, 1.03f)
+
+                    Matrix terrainPos = Matrix.CreateScale(1.0f + seamCorrection)
                         * Matrix.CreateRotationY(MathHelper.Pi)
                         * Matrix.CreateTranslation(cellMesh.Position * cellSize);
 
@@ -314,6 +332,10 @@ namespace GameClient
                 GraphicsDevice.DepthStencilState = DepthStencilState.Default;
                 GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
                 GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
+
+                debugDrawer.DrawString(new Vector2(20, 200),
+                    "Generated " + terrainManager.terrainCells.Length + " " + cellSize + "^3 cells in " + terrainGenerationTimer.Elapsed.TotalSeconds.ToString("#.###") + " sec",
+                    Color.Yellow);
             }
             else
                 debugDrawer.DrawString(new Vector2((Window.ClientBounds.Width / 2) - 50, Window.ClientBounds.Height / 2),
@@ -331,11 +353,11 @@ namespace GameClient
             GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.Black, 1.0f, 0);
 
             // Compute camera matrices
-            camera.View = Matrix.CreateTranslation(0, -40, 0) *
+            camera.View = Matrix.CreateTranslation(0, 0, 0) *
                           Matrix.CreateRotationY(MathHelper.ToRadians(cameraRotation)) *
                           Matrix.CreateRotationX(MathHelper.ToRadians(cameraArc)) *
                           Matrix.CreateLookAt(new Vector3(0, 0, -cameraDistance),
-                                              new Vector3(0, 0, 0), Vector3.Up);
+                                              Vector3.Zero, Vector3.Up);
 
             terrainDrawContext.BasicEffect.View = camera.View;
             terrainDrawContext.BasicEffect.Projection = camera.Projection;

@@ -99,6 +99,9 @@
     <Reference Include="Nuclex.UserInterface">
       <HintPath>..\..\..\..\nuclex\release\Nuclex.UserInterface.dll</HintPath>
     </Reference>
+    <Reference Include="PolyVoxCore.Net">
+      <HintPath>References\PolyVox\PolyVoxCore.Net.dll</HintPath>
+    </Reference>
     <Reference Include="System">
       <Private>False</Private>
     </Reference>
@@ -123,86 +126,6 @@
     <Compile Include="Source\Terrain\TerrainManager.cs" />
     <Compile Include="Source\Terrain\TerrainMesh.cs" />
     <Compile Include="Source\Util\PerlinNoise.cs" />
-    <Compile Include="Source\PolyVox\Density8.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\LodRecord.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\LodRecordVector.cs" />
-    <Compile Include="Source\PolyVox\Material8.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\PolyVoxCore.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\PolyVoxCorePINVOKE.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\PositionMaterial.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\PositionMaterialNormal.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\PositionMaterialNormalVector.cs" />
-    <Compile Include="Source\PolyVox\PositionMaterialVector.cs" />
-    <Compile Include="Source\PolyVox\Region.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\SurfaceExtractorDensity8.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\SurfaceExtractorMaterial8.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\SurfaceMeshPositionMaterial.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\SurfaceMeshPositionMaterialNormal.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\SWIGTYPE_p_std__setT_unsigned_char_t.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\uint32Vector.cs" />
-    <Compile Include="Source\PolyVox\uint8Vector.cs" />
-    <Compile Include="Source\PolyVox\Vector3DDouble.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\Vector3DFloat.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\Vector3DInt16.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\Vector3DInt32.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\Vector3DInt8.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\Vector3DUint16.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\Vector3DUint32.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\Vector3DUint8.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\VolumeDensity8.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\VolumeMaterial8.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\VolumeSamplerDensity8.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Source\PolyVox\VolumeSamplerMaterial8.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Source\Program.cs" />
     <Compile Include="Source\Game.cs" />
   </ItemGroup>
