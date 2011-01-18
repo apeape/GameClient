@@ -180,10 +180,10 @@ namespace GameClient
                 new Vector3DInt16((short)(volume.getWidth()), (short)(volume.getHeight()), (short)(volume.getDepth())));
         }
 
-        public static TerrainCellMesh GetMesh(this VolumeDensity8 volume, Vector3 pos)
+        public static TerrainCellMesh GetMesh(this VolumeDensity8 volume, Vector3 pos, bool cubic)
         {
             TerrainCellMesh mesh = new TerrainCellMesh(volume, pos);
-            mesh.Calculate();
+            mesh.Calculate(cubic);
             return mesh;
         }
 

@@ -75,6 +75,7 @@ namespace GameClient
 
         private Stopwatch terrainGenerationTimer;
 
+        private bool cubicTerrain = false;
 
         public Game1()
         {
@@ -199,7 +200,7 @@ namespace GameClient
                             cell.PerlinNoise(noiseOffset * cellSize, terrainNoiseDensity, seed);
                             // generate mesh for the cell
                             TerrainCellMesh mesh = new TerrainCellMesh(terrainManager.GetCell(pos), pos);
-                            mesh.Calculate();
+                            mesh.Calculate(cubicTerrain);
                             if (mesh == null)
                             {
                                 throw new Exception("Problem generating mesh from volume!");
@@ -394,7 +395,7 @@ Regenerate: T
             options.EnableDragging = true;
             options.Bounds = new UniRectangle(
                 new UniScalar(1.0f, -210.0f), 10,
-                200, 260);
+                200, 285);
             mainScreen.Desktop.Children.Add(options);
 
             OptionControl wireFrameToggle = new OptionControl();
@@ -446,6 +447,13 @@ Regenerate: T
             densityControl.ThumbPosition = terrainNoiseDensity / densityRange;
             densityControl.Moved += delegate(object sender, EventArgs arguments) { terrainNoiseDensity = densityControl.ThumbPosition * densityRange; };
             options.Children.Add(densityControl);
+
+            OptionControl cubicToggle = new OptionControl();
+            cubicToggle.Text = "Cubic (requires regen)";
+            cubicToggle.Bounds = new UniRectangle(10, 175, 100, 32);
+            cubicToggle.Selected = cubicTerrain;
+            cubicToggle.Changed += delegate(object sender, EventArgs arguments) { cubicTerrain = cubicToggle.Selected; };
+            options.Children.Add(cubicToggle);
 
             ButtonControl regenerateButton = new ButtonControl();
             regenerateButton.Text = "Regenerate";

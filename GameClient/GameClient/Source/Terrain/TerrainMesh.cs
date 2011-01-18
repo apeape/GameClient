@@ -11,6 +11,7 @@ namespace GameClient.Terrain
     public class TerrainCellMesh
     {
         private SurfaceExtractorDensity8 surfaceExtractor;
+        private CubicSurfaceExtractorWithNormalsDensity8 cubicSurfaceExtractor;
         private SurfaceMeshPositionMaterialNormal surface;
 
         public VertexPositionColor[] Vertices { get; set; }
@@ -23,11 +24,15 @@ namespace GameClient.Terrain
             Position = pos;
             volume.setBorderValue(new Density8(0));
             surfaceExtractor = new SurfaceExtractorDensity8(volume, volume.getEntireVolumePaddedBorder(), surface);
+            cubicSurfaceExtractor = new CubicSurfaceExtractorWithNormalsDensity8(volume, volume.getEntireVolumePaddedBorder(), surface);
         }
 
-        public void Calculate()
+        public void Calculate(bool cubic)
         {
-            surfaceExtractor.execute();
+            if (cubic)
+                cubicSurfaceExtractor.execute();
+            else
+                surfaceExtractor.execute();
 
             Random random = new Random();
             // TODO: redo polyvox wrapper to generate these instead of using LINQ hilarity
@@ -44,7 +49,7 @@ namespace GameClient.Terrain
 
             // convert indices to xna format
             Indices = surface.getIndices().Select(i => (short)i).ToArray();
-            //Indices = surface.getIndices().Select(i => (short)i).Reverse().ToArray();
+
         }
     }
 }
