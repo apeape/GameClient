@@ -15,8 +15,12 @@ namespace GameClient.Terrain
         private SurfaceMeshPositionMaterialNormal surface;
 
         public VertexPositionColor[] Vertices { get; set; }
+        public VertexPositionNormalTexture[] VerticesNormal { get; set; }
         public short[] Indices { get; set; }
         public Vector3 Position { get; set; }
+
+        public VertexBuffer vertexBuffer { get; set; }
+        public IndexBuffer indexBuffer { get; set; }
 
         public TerrainCellMesh(VolumeDensity8 volume, Vector3 pos)
         {
@@ -27,7 +31,7 @@ namespace GameClient.Terrain
             cubicSurfaceExtractor = new CubicSurfaceExtractorWithNormalsDensity8(volume, volume.getEntireVolumePaddedBorder(), surface);
         }
 
-        public void Calculate(bool cubic)
+        public void Calculate(bool cubic, GraphicsDevice graphicsDevice)
         {
             if (cubic)
                 cubicSurfaceExtractor.execute();
@@ -36,7 +40,8 @@ namespace GameClient.Terrain
 
             Random random = new Random();
             // TODO: redo polyvox wrapper to generate these instead of using LINQ hilarity
-            Vertices = surface.getVertices().Select(v =>
+
+            /*Vertices = surface.getVertices().Select(v =>
                 {
                     const double colorDensity = 15.0;
                     Vector3 vector = v.position.ToVector3();
@@ -45,10 +50,32 @@ namespace GameClient.Terrain
                     byte rand = (byte)random.Next(255);
                     return new VertexPositionColor(vector,
                         new Color(random.Next(120, 130) + (noise % 50), random.Next(160, 180) + (rand * noise % 20), noise + 30));
+                }).ToArray();*/
+
+            PositionMaterialNormalVector vertices = surface.getVertices();
+            if (vertices.Count == 0)
+            {
+                //Console.WriteLine("skipping empty cell mesh");
+            }
+            else
+            {
+                VerticesNormal = vertices.Select<PositionMaterialNormal, VertexPositionNormalTexture>(v =>
+                {
+                    return new VertexPositionNormalTexture(v.position.ToVector3(), v.getNormal().ToVector3(), new Vector2(0, 1));
                 }).ToArray();
 
-            // convert indices to xna format
-            Indices = surface.getIndices().Select(i => (short)i).ToArray();
+                // convert indices to xna format
+                Indices = surface.getIndices().Select(i => (short)i).ToArray();
+
+                vertexBuffer = new VertexBuffer(graphicsDevice,
+                      typeof(VertexPositionNormalTexture), VerticesNormal.Length,
+                      BufferUsage.None);
+                vertexBuffer.SetData<VertexPositionNormalTexture>(VerticesNormal);
+
+                indexBuffer = new IndexBuffer(graphicsDevice,
+                    IndexElementSize.SixteenBits, Indices.Length, BufferUsage.None);
+                indexBuffer.SetData<short>(Indices);
+            }
 
         }
     }

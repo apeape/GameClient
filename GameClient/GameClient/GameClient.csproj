@@ -90,6 +90,9 @@
     <Reference Include="mscorlib">
       <Private>False</Private>
     </Reference>
+    <Reference Include="Nuclex.Fonts">
+      <HintPath>References\Nuclex\Nuclex.Fonts.dll</HintPath>
+    </Reference>
     <Reference Include="Nuclex.Graphics">
       <HintPath>References\Nuclex\Nuclex.Graphics.dll</HintPath>
     </Reference>

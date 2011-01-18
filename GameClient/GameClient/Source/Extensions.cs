@@ -6,6 +6,7 @@ using PolyVoxCore;
 using Microsoft.Xna.Framework;
 using GameClient.Util;
 using GameClient.Terrain;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace GameClient
 {
@@ -180,10 +181,10 @@ namespace GameClient
                 new Vector3DInt16((short)(volume.getWidth()), (short)(volume.getHeight()), (short)(volume.getDepth())));
         }
 
-        public static TerrainCellMesh GetMesh(this VolumeDensity8 volume, Vector3 pos, bool cubic)
+        public static TerrainCellMesh GetMesh(this VolumeDensity8 volume, Vector3 pos, bool cubic, GraphicsDevice graphicsDevice)
         {
             TerrainCellMesh mesh = new TerrainCellMesh(volume, pos);
-            mesh.Calculate(cubic);
+            mesh.Calculate(cubic, graphicsDevice);
             return mesh;
         }
 
