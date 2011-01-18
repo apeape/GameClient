@@ -60,13 +60,18 @@ namespace GameClient
         const int cellSize = 32;
         const int terrainSize = 2;
 
-        private float terrainNoiseDensity = 45.0f;
+        private float terrainNoiseDensity = 40.0f;
 
         //private bool Initialized = false;
         private bool Wireframe = false;
 
         private KeyboardState previousKeyboardState;
         //private MouseState previousMouseState;
+
+        // Create a Index Buffer
+        IndexBuffer terrainIndexbuffer;
+        // Create a Vertex Buffer
+        VertexBuffer terrainVertexBuffer;
 
 
         public Game1()
@@ -177,32 +182,31 @@ namespace GameClient
             terrainManager.ForEachCell((pos, cell) =>
             {
                 // do each cell in its own thread
-                //new Thread(delegate()
-                //{
-                    /*
+                new Thread(delegate()
+                {
                     // generate perlin 3d noise
                     Vector3 noiseOffset = pos;
                     noiseOffset.Y *= -1;
                     cell.PerlinNoise(noiseOffset * cellSize, terrainNoiseDensity, seed);
                     // generate mesh for the cell
-                    TerrainCellMesh mesh = new TerrainCellMesh(terrainManager.GetCell(pos));
+                    TerrainCellMesh mesh = new TerrainCellMesh(terrainManager.GetCell(pos), pos);
                     mesh.Calculate();
                     if (mesh == null)
                     {
                         throw new Exception("Problem generating mesh from volume!");
                     }
                     terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z] = mesh;
-                    */
 
+                    /*
                     terrainManager.terrainCells[(int)pos.X, (int)pos.Y, (int)pos.Z].ForEach(voxelPos =>
                         terrainManager.terrainCells[(int)pos.X, (int)pos.Y, (int)pos.Z].setDensityAt(voxelPos, 255));
 
                     //terrainManager.terrainCells[(int)pos.X, (int)pos.Y, (int)pos.Z].CreateSphere(19, 255);
                     terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z] = new TerrainCellMesh(terrainManager.GetCell(pos), pos);
                     terrainManager.terrainCellMeshes[(int)pos.X, (int)pos.Y, (int)pos.Z].Calculate();
-
+                    */
                     terrainManager.cellsInitialized++;
-                //}).Start();
+                }).Start();
             });
 
             /*
@@ -279,12 +283,13 @@ namespace GameClient
                 GraphicsDevice.RasterizerState = rasterizerState;
 
                 // using this we should be able to draw many terrain chunks in one draw call
-                terrainBatch.Begin(QueueingStrategy.Deferred);
+                
 
                 foreach (var cellMesh in terrainManager.terrainCellMeshes)
                 {
+                    terrainBatch.Begin(QueueingStrategy.Deferred);
                     //Matrix terrainPos = Matrix.CreateScale(1.025f, 1.025f, 1.025f)
-                    Matrix terrainPos = Matrix.CreateScale(1f, 1f, 1f)
+                    Matrix terrainPos = Matrix.CreateScale(1.03f, 1.03f, 1.03f)
                         * Matrix.CreateRotationY(MathHelper.Pi)
                         * Matrix.CreateTranslation(cellMesh.Position * cellSize);
 
@@ -301,10 +306,10 @@ namespace GameClient
                         cellMesh.Indices.Length,
                         PrimitiveType.TriangleList,
                         terrainDrawContext);
+                    terrainBatch.End();
                 }
 
-                terrainBatch.End();
-
+                // reset rendering
                 GraphicsDevice.BlendState = BlendState.Opaque;
                 GraphicsDevice.DepthStencilState = DepthStencilState.Default;
                 GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
