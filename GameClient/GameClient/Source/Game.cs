@@ -51,7 +51,8 @@ namespace GameClient
         SurfaceMeshPositionMaterialNormal surface = new SurfaceMeshPositionMaterialNormal();
         /// <summary>Primitive batch used to render terrain cells in batches</summary>
         private PrimitiveBatch<VertexPositionColor> terrainBatch;
-        private BasicEffectDrawContext terrainDrawContext;
+        //private BasicEffectDrawContext terrainDrawContext;
+        private EffectDrawContext terrainDrawContext;
 
         private Random random = new Random();
 
@@ -73,6 +74,8 @@ namespace GameClient
         private float cellGap = 1.25f;
         private long vertexCount = 0;
         //private long triangleCount = 0;
+
+        private Effect triplanarEffect;
 
         public Game1()
         {
@@ -109,11 +112,12 @@ namespace GameClient
         protected override void Initialize()
         {
             terrainBatch = new PrimitiveBatch<VertexPositionColor>(graphics.GraphicsDevice);
-            terrainDrawContext = new BasicEffectDrawContext(graphics.GraphicsDevice);
-            terrainDrawContext.BasicEffect.FogEnabled = true;
-            terrainDrawContext.BasicEffect.FogColor = new Color(20, 20, 20).ToVector3();
-            terrainDrawContext.BasicEffect.FogStart = 50;
-            terrainDrawContext.BasicEffect.FogEnd = 200;
+
+            //terrainDrawContext.BasicEffect.FogEnabled = true;
+            //terrainDrawContext.BasicEffect.FogColor = new Color(20, 20, 20).ToVector3();
+            //terrainDrawContext.BasicEffect.FogStart = 50;
+            //terrainDrawContext.BasicEffect.FogEnd = 200;
+            
 
             contentManager = new ContentManager(
                 GraphicsDeviceServiceHelper.MakePrivateServiceProvider(graphics),
@@ -248,7 +252,10 @@ namespace GameClient
             // TODO: use Content to load your game content here
             GenerateTerrain(20);
 
-            terrainDrawContext.BasicEffect.Texture = contentManager.Load<Texture2D>("paved"); ;
+            triplanarEffect = contentManager.Load<Effect>("Triplanar");
+            terrainDrawContext = new EffectDrawContext(triplanarEffect);
+            terrainDrawContext.Effect.Parameters["ColorMap"].SetValue(contentManager.Load<Texture2D>("paved"));
+            //terrainDrawContext.BasicEffect.Texture = contentManager.Load<Texture2D>("paved"); ;
         }
 
         /// <summary>
@@ -307,14 +314,11 @@ namespace GameClient
                 //rasterizerState.CullMode = CullMode.None;
                 GraphicsDevice.RasterizerState = rasterizerState;
 
-                terrainDrawContext.BasicEffect.LightingEnabled = true;
-                terrainDrawContext.BasicEffect.EnableDefaultLighting();
-                terrainDrawContext.BasicEffect.TextureEnabled = true;
-                terrainDrawContext.BasicEffect.VertexColorEnabled = false;
-                GraphicsDevice.Textures[0] = terrainDrawContext.BasicEffect.Texture; 
-                //terrainDrawContext.BasicEffect.CurrentTechnique = false;
-
-                // using this we should be able to draw many terrain chunks in one draw call
+                //terrainDrawContext.BasicEffect.LightingEnabled = true;
+                //terrainDrawContext.BasicEffect.EnableDefaultLighting();
+                //terrainDrawContext.BasicEffect.TextureEnabled = true;
+                //terrainDrawContext.BasicEffect.VertexColorEnabled = false;
+                //GraphicsDevice.Textures[0] = terrainDrawContext.BasicEffect.Texture; 
 
                 float seamCorrection = cubicTerrain ? 0.0f : cellGap / cellRes;
                 foreach (var cellMesh in terrainManager.terrainCellMeshes)
@@ -334,9 +338,12 @@ namespace GameClient
                         * Matrix.CreateRotationY(MathHelper.Pi)
                         * Matrix.CreateTranslation(cellMesh.Position * cellRes);
 
-                    terrainDrawContext.BasicEffect.View = camera.View;
-                    terrainDrawContext.BasicEffect.Projection = camera.Projection;
-                    terrainDrawContext.BasicEffect.World = terrainPos * worldMatrix;
+                    //terrainDrawContext.BasicEffect.View = camera.View;
+                    //terrainDrawContext.BasicEffect.Projection = camera.Projection;
+                    //terrainDrawContext.BasicEffect.World = terrainPos * worldMatrix;
+                    terrainDrawContext.Effect.Parameters["View"].SetValue(camera.View);
+                    terrainDrawContext.Effect.Parameters["Projection"].SetValue(camera.Projection);
+                    terrainDrawContext.Effect.Parameters["World"].SetValue(terrainPos * worldMatrix);
 
                     /*
                     terrainBatch.Draw(
@@ -350,7 +357,8 @@ namespace GameClient
                         terrainDrawContext);*/
                     //terrainBatch.End();
 
-                    foreach (EffectPass pass in terrainDrawContext.BasicEffect.CurrentTechnique.Passes)
+                    //foreach (EffectPass pass in terrainDrawContext.BasicEffect.CurrentTechnique.Passes)
+                    foreach (EffectPass pass in terrainDrawContext.Effect.CurrentTechnique.Passes)
                     {
                         pass.Apply();
                         GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, cellMesh.VerticesNormal.Length, 0, cellMesh.Indices.Length / 3);
@@ -371,7 +379,7 @@ namespace GameClient
                     "Generated " + terrainManager.terrainCells.Length + " " + terrainManager.terrainCells.GetUpperBound(0) + 1 +
                     "^3 cells in " + terrainGenerationTimer.Elapsed.TotalSeconds.ToString("#.###") + " sec" +
                     "\nVertices: " + vertexCount,
-                    Color.Yellow);
+                    Color.LightYellow);
             }
             else
                 debugDrawer.DrawString(new Vector2((Window.ClientBounds.Width / 2) - 50, Window.ClientBounds.Height / 2),
@@ -386,7 +394,7 @@ namespace GameClient
         protected override void Draw(GameTime gameTime)
         {
             //GraphicsDevice.Clear(Color.CornflowerBlue);
-            GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.Black, 1.0f, 0);
+            GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.SkyBlue, 1.0f, 0);
 
             // Compute camera matrices
             camera.View = Matrix.CreateTranslation(0, 0, 0) *
@@ -395,9 +403,9 @@ namespace GameClient
                           Matrix.CreateLookAt(new Vector3(0, 0, -cameraDistance),
                                               Vector3.Zero, Vector3.Up);
 
-            terrainDrawContext.BasicEffect.View = camera.View;
-            terrainDrawContext.BasicEffect.Projection = camera.Projection;
-            terrainDrawContext.BasicEffect.World = Matrix.Identity;
+            //terrainDrawContext.BasicEffect.View = camera.View;
+            //terrainDrawContext.BasicEffect.Projection = camera.Projection;
+            //terrainDrawContext.BasicEffect.World = Matrix.Identity;
 
             DrawTerrain();
             
@@ -412,7 +420,7 @@ Regenerate: T
 
 CellRes:        " + cellRes + "^3" + 
 "\nTerrainRes:     " + terrainRes + "^3",
-                Color.Orange);
+                Color.Black);
             debugDrawer.Draw(gameTime);
             debugDrawer.Reset();
 
@@ -442,6 +450,7 @@ CellRes:        " + cellRes + "^3" +
             wireFrameToggle.Changed += delegate(object sender, EventArgs arguments) { Wireframe = wireFrameToggle.Selected; };
             options.Children.Add(wireFrameToggle);
 
+            /*
             OptionControl fogToggle = new OptionControl();
             fogToggle.Text = "Fog";
             fogToggle.Bounds = new UniRectangle(10, 65, 100, 32);
@@ -472,14 +481,14 @@ CellRes:        " + cellRes + "^3" +
             fogFar.ThumbPosition = terrainDrawContext.BasicEffect.FogEnd / fogRange;
             fogFar.Moved += delegate(object sender, EventArgs arguments) { terrainDrawContext.BasicEffect.FogEnd = fogFar.ThumbPosition * fogRange; };
             options.Children.Add(fogFar);
-
+            */
 
             LabelControl cellGapLabel = new LabelControl("Gap");
-            cellGapLabel.Bounds = new UniRectangle(10, 150, 20, 24);
+            cellGapLabel.Bounds = new UniRectangle(10, 65, 20, 24);
             options.Children.Add(cellGapLabel);
 
             HorizontalSliderControl cellGapControl = new HorizontalSliderControl();
-            cellGapControl.Bounds = new UniRectangle(50, 150, 140, 24);
+            cellGapControl.Bounds = new UniRectangle(50, 65, 140, 24);
             cellGapControl.ThumbSize = 0.1f;
             const float cellGapRange = 5.0f;
             cellGapControl.ThumbPosition = cellGap / cellGapRange;
@@ -487,36 +496,36 @@ CellRes:        " + cellRes + "^3" +
             options.Children.Add(cellGapControl);
 
             LabelControl densityLabel = new LabelControl("Density");
-            densityLabel.Bounds = new UniRectangle(10, 175, 20, 24);
+            densityLabel.Bounds = new UniRectangle(10, 90, 20, 24);
             options.Children.Add(densityLabel);
 
             const float densityRange = 100.0f;
             HorizontalSliderControl densityControl = new HorizontalSliderControl();
-            densityControl.Bounds = new UniRectangle(60, 175, 130, 24);
+            densityControl.Bounds = new UniRectangle(60, 90, 130, 24);
             densityControl.ThumbSize = 0.1f;
             densityControl.ThumbPosition = terrainNoiseDensity / densityRange;
             densityControl.Moved += delegate(object sender, EventArgs arguments) { terrainNoiseDensity = densityControl.ThumbPosition * densityRange; };
             options.Children.Add(densityControl);
 
             LabelControl cellResLabel = new LabelControl("CellRes");
-            cellResLabel.Bounds = new UniRectangle(10, 200, 20, 24);
+            cellResLabel.Bounds = new UniRectangle(10, 115, 20, 24);
             options.Children.Add(cellResLabel);
 
             const float cellResRange = 5.0f;
             HorizontalSliderControl cellResControl = new HorizontalSliderControl();
-            cellResControl.Bounds = new UniRectangle(60, 200, 130, 24);
+            cellResControl.Bounds = new UniRectangle(60, 115, 130, 24);
             cellResControl.ThumbSize = 0.1f;
             cellResControl.ThumbPosition = (float)Math.Sqrt(cellRes) / cellResRange;
             cellResControl.Moved += delegate(object sender, EventArgs arguments) { cellRes = (float)Math.Pow(2, (int)(cellResControl.ThumbPosition * cellResRange)); };
             options.Children.Add(cellResControl);
 
             LabelControl terrainResLabel = new LabelControl("TerRes");
-            terrainResLabel.Bounds = new UniRectangle(10, 225, 20, 24);
+            terrainResLabel.Bounds = new UniRectangle(10, 140, 20, 24);
             options.Children.Add(terrainResLabel);
 
             const float terrainResRange = 5.0f;
             HorizontalSliderControl terrainResControl = new HorizontalSliderControl();
-            terrainResControl.Bounds = new UniRectangle(60, 225, 130, 24);
+            terrainResControl.Bounds = new UniRectangle(60, 140, 130, 24);
             terrainResControl.ThumbSize = 0.1f;
             terrainResControl.ThumbPosition = (float)Math.Sqrt(terrainRes) / terrainResRange;
             terrainResControl.Moved += delegate(object sender, EventArgs arguments) { terrainRes = (float)Math.Pow(2, (int)(terrainResControl.ThumbPosition * terrainResRange)); };
@@ -524,7 +533,7 @@ CellRes:        " + cellRes + "^3" +
 
             OptionControl cubicToggle = new OptionControl();
             cubicToggle.Text = "Cubic (requires regen)";
-            cubicToggle.Bounds = new UniRectangle(10, 250, 100, 32);
+            cubicToggle.Bounds = new UniRectangle(10, 165, 100, 32);
             cubicToggle.Selected = cubicTerrain;
             cubicToggle.Changed += delegate(object sender, EventArgs arguments) { cubicTerrain = cubicToggle.Selected; };
             options.Children.Add(cubicToggle);
@@ -641,8 +650,8 @@ CellRes:        " + cellRes + "^3" +
             if (!previousKeyboardState.IsKeyDown(Keys.Q) && currentKeyboardState.IsKeyDown(Keys.Q))
                 Wireframe = !Wireframe;
 
-            if (!previousKeyboardState.IsKeyDown(Keys.F) && currentKeyboardState.IsKeyDown(Keys.F))
-                terrainDrawContext.BasicEffect.FogEnabled = !terrainDrawContext.BasicEffect.FogEnabled;
+            //if (!previousKeyboardState.IsKeyDown(Keys.F) && currentKeyboardState.IsKeyDown(Keys.F))
+                //terrainDrawContext.BasicEffect.FogEnabled = !terrainDrawContext.BasicEffect.FogEnabled;
 
             if (!previousKeyboardState.IsKeyDown(Keys.T) && currentKeyboardState.IsKeyDown(Keys.T))
                 GenerateTerrain(random.Next(255));

@@ -61,7 +61,7 @@ namespace GameClient.Terrain
             {
                 VerticesNormal = vertices.Select<PositionMaterialNormal, VertexPositionNormalTexture>(v =>
                 {
-                    return new VertexPositionNormalTexture(v.position.ToVector3(), v.getNormal().ToVector3(), new Vector2(0, 1));
+                    return new VertexPositionNormalTexture(v.position.ToVector3(), v.getNormal().ToVector3(), new Vector2(0, 0));
                 }).ToArray();
 
                 // convert indices to xna format
