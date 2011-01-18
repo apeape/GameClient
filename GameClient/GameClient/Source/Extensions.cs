@@ -177,12 +177,12 @@ namespace GameClient
         {
             const short padding = 1;
             return new Region(new Vector3DInt16(-padding, -padding, -padding),
-                new Vector3DInt16((short)(volume.getWidth() + padding), (short)(volume.getHeight() + padding), (short)(volume.getDepth() + padding)));
+                new Vector3DInt16((short)(volume.getWidth()), (short)(volume.getHeight()), (short)(volume.getDepth())));
         }
 
-        public static TerrainCellMesh GetMesh(this VolumeDensity8 volume)
+        public static TerrainCellMesh GetMesh(this VolumeDensity8 volume, Vector3 pos)
         {
-            TerrainCellMesh mesh = new TerrainCellMesh(volume);
+            TerrainCellMesh mesh = new TerrainCellMesh(volume, pos);
             mesh.Calculate();
             return mesh;
         }

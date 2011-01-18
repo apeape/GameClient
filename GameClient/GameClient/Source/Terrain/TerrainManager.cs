@@ -80,6 +80,19 @@ namespace GameClient.Terrain
                     }
         }
 
+        public void ForEachCellMesh(Action<Vector3> action)
+        {
+            Vector3 pos;
+            // loop over every terrain cell
+            for (int z = 0; z < terrainDimensions.Z; z++)
+                for (int y = 0; y < terrainDimensions.Y; y++)
+                    for (int x = 0; x < terrainDimensions.X; x++)
+                    {
+                        pos = new Vector3(x, y, z);
+                        action(pos);
+                    }
+        }
+
         public void InitializeCells()
         {
             ForEachCell(pos => InitializeCell(pos.X, pos.Y, pos.Z));
