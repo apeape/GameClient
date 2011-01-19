@@ -2,7 +2,7 @@ float4x4 World;
 float4x4 View;
 float4x4 Projection;
 float4 lightDirection = { 1, -0.7, 1, 0};
-//float textureScale;
+float textureScale;
 
 texture ColorMap;
 sampler ColorMapSampler = sampler_state
@@ -10,10 +10,12 @@ sampler ColorMapSampler = sampler_state
    Texture = <ColorMap>;
    MinFilter = ANISOTROPIC;
    MagFilter = ANISOTROPIC;
+   MaxAnisotropy = 4;
    MipFilter = Linear;   
    AddressU  = Clamp;
    AddressV  = Clamp;
 };
+
 
 // TODO: add effect parameters here.
 
@@ -57,17 +59,17 @@ float4 PixelShaderFunction(VertexShaderOutput input) : COLOR0
 {
 	float3 absNormal = abs(input.Normal);
 	float3 blend_weights = absNormal;
-	blend_weights = blend_weights - 0.2679f;
+	//blend_weights = blend_weights - 0.2679f;
 	blend_weights = max(blend_weights, 0);
 	// force sum to 1.0
 	blend_weights /= (blend_weights.x + blend_weights.y + blend_weights.z).xxx;
 
 	float4 blended_color;
-	float tex_scale = 0.03f;
+	//float tex_scale = 0.05f;
 
-	float2 coord1 = input.worldPosition.yz * tex_scale;
-	float2 coord2 = input.worldPosition.zx * tex_scale;
-	float2 coord3 = input.worldPosition.xy * tex_scale;
+	float2 coord1 = input.worldPosition.yz * textureScale;
+	float2 coord2 = input.worldPosition.zx * textureScale;
+	float2 coord3 = input.worldPosition.xy * textureScale;
 
 	float4 col1 = tex2D(ColorMapSampler, coord1); //* 0.01 + float4(1.0,0.0,0.0,1.0); // uncomment to see the blending in red/green/blue only
 	float4 col2 = tex2D(ColorMapSampler, coord2); //* 0.01 + float4(0.0,1.0,0.0,1.0);

@@ -182,6 +182,10 @@ namespace GameClient
             terrainManager.Initialized = false;
             terrainManager.cellsInitialized = 0;
 
+            //set texture scale for shader
+            if (terrainDrawContext != null)
+                terrainDrawContext.Effect.Parameters["textureScale"].SetValue((1 / cellRes) * 0.9f);
+
             object terrainLock = new object();
 
             terrainGenerationTimer = new Stopwatch();
@@ -255,6 +259,7 @@ namespace GameClient
             triplanarEffect = contentManager.Load<Effect>("Triplanar");
             terrainDrawContext = new EffectDrawContext(triplanarEffect);
             terrainDrawContext.Effect.Parameters["ColorMap"].SetValue(contentManager.Load<Texture2D>("paved"));
+            terrainDrawContext.Effect.Parameters["textureScale"].SetValue(0.033f + ((1 / cellRes) / 2.2f));
             //terrainDrawContext.BasicEffect.Texture = contentManager.Load<Texture2D>("paved"); ;
         }
 
