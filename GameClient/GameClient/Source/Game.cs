@@ -61,7 +61,7 @@ namespace GameClient
         private float cellRes = 8;
         private float terrainRes = 4;
 
-        private float terrainNoiseDensity = 30.0f;
+        private float terrainNoiseDensity = 25.0f;
 
         //private bool Initialized = false;
         private bool Wireframe = false;
@@ -515,7 +515,7 @@ CellRes:        " + cellRes + "^3" +
             HorizontalSliderControl cellResControl = new HorizontalSliderControl();
             cellResControl.Bounds = new UniRectangle(60, 115, 130, 24);
             cellResControl.ThumbSize = 0.1f;
-            cellResControl.ThumbPosition = (float)Math.Sqrt(cellRes) / cellResRange;
+            cellResControl.ThumbPosition = cellRes / (float)Math.Pow(2, cellResRange);
             cellResControl.Moved += delegate(object sender, EventArgs arguments) { cellRes = (float)Math.Pow(2, (int)(cellResControl.ThumbPosition * cellResRange)); };
             options.Children.Add(cellResControl);
 
@@ -527,7 +527,7 @@ CellRes:        " + cellRes + "^3" +
             HorizontalSliderControl terrainResControl = new HorizontalSliderControl();
             terrainResControl.Bounds = new UniRectangle(60, 140, 130, 24);
             terrainResControl.ThumbSize = 0.1f;
-            terrainResControl.ThumbPosition = (float)Math.Sqrt(terrainRes) / terrainResRange;
+            terrainResControl.ThumbPosition = terrainRes / (float)Math.Pow(2, terrainResRange);
             terrainResControl.Moved += delegate(object sender, EventArgs arguments) { terrainRes = (float)Math.Pow(2, (int)(terrainResControl.ThumbPosition * terrainResRange)); };
             options.Children.Add(terrainResControl);
 

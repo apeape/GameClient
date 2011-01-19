@@ -1,7 +1,8 @@
 float4x4 World;
 float4x4 View;
 float4x4 Projection;
-float4 lightDirection = {-0.7, 1, 1, 0};
+float4 lightDirection = { 1, -0.7, 1, 0};
+//float textureScale;
 
 texture ColorMap;
 sampler ColorMapSampler = sampler_state
@@ -28,8 +29,8 @@ struct VertexShaderInput
 struct VertexShaderOutput
 {
     float4 Position : POSITION0;
-    float3 Normal : TEXCOORD1;
-    float3 worldPosition : TEXCOORD2;
+    float3 Normal : TEXCOORD0;
+    float3 worldPosition : TEXCOORD1;
 
     // TODO: add vertex shader outputs such as colors and texture
     // coordinates here. These values will automatically be interpolated
@@ -44,10 +45,8 @@ VertexShaderOutput VertexShaderFunction(VertexShaderInput input)
     float4 viewPosition = mul(worldPosition, View);
     output.Position = mul(viewPosition, Projection);
 
-    //output.worldPosition = worldPosition;
 	output.worldPosition = input.Position.xyz / input.Position.w;
-    //output.Normal = mul(input.Normal, worldPosition);
-	output.Normal = normalize(mul(input.Normal, worldPosition));
+	output.Normal = normalize(input.Normal);
 
     // TODO: add your vertex shader code here.
 
@@ -56,32 +55,34 @@ VertexShaderOutput VertexShaderFunction(VertexShaderInput input)
 
 float4 PixelShaderFunction(VertexShaderOutput input) : COLOR0
 {
-    // TODO: add your pixel shader code here.
-    float scale = 0.03f;
+	float3 absNormal = abs(input.Normal);
+	float3 blend_weights = absNormal;
+	blend_weights = blend_weights - 0.2679f;
+	blend_weights = max(blend_weights, 0);
+	// force sum to 1.0
+	blend_weights /= (blend_weights.x + blend_weights.y + blend_weights.z).xxx;
 
-    float tighten = 0.4679f;
-    float4 mXY = abs(input.Normal.z) - tighten;
-    float4 mXZ = abs(input.Normal.y) - tighten;
-    float4 mYZ = abs(input.Normal.x) - tighten;
+	float4 blended_color;
+	float tex_scale = 0.03f;
 
-    float total = mXY + mXZ + mYZ;
-    mXY /= total;
-    mXZ /= total;
-    mYZ /= total;
+	float2 coord1 = input.worldPosition.yz * tex_scale;
+	float2 coord2 = input.worldPosition.zx * tex_scale;
+	float2 coord3 = input.worldPosition.xy * tex_scale;
 
-    float4 cXY = tex2D(ColorMapSampler, input.worldPosition.xy * scale);
-    float4 cXZ = tex2D(ColorMapSampler, input.worldPosition.xz * scale);
-    float4 cYZ = tex2D(ColorMapSampler, input.worldPosition.yz * scale);
+	float4 col1 = tex2D(ColorMapSampler, coord1); //* 0.01 + float4(1.0,0.0,0.0,1.0); // uncomment to see the blending in red/green/blue only
+	float4 col2 = tex2D(ColorMapSampler, coord2); //* 0.01 + float4(0.0,1.0,0.0,1.0);
+	float4 col3 = tex2D(ColorMapSampler, coord3); //* 0.01 + float4(0.0,0.0,1.0,1.0);
 
-	// directional + ambient light
-	float4 light = normalize(lightDirection);
-	//float4 light = normalize(-lightDirection);
-	float ldn = dot(light, input.Normal);
-	ldn = max(0, ldn);
+	blended_color = col1.xyzw * blend_weights.xxxx +  
+					col2.xyzw * blend_weights.yyyy +  
+					col3.xyzw * blend_weights.zzzz;
 
+	// directional lighting
+	float4 light = -normalize(lightDirection);
+	float ldn = max(0, dot(light, input.Normal));
 	float ambient = 0.2f;
-    return cXY*mXY + cXZ*mXZ + cYZ*mYZ  * (ambient + ldn);
-    //return float4(1, 0, 0, 1);
+
+	return blended_color * (ambient + ldn);
 }
 
 technique Technique1
