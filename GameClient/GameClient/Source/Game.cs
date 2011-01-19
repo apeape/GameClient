@@ -184,7 +184,7 @@ namespace GameClient
 
             //set texture scale for shader
             if (terrainDrawContext != null)
-                terrainDrawContext.Effect.Parameters["textureScale"].SetValue((1 / cellRes) * 0.9f);
+                SetTextureScale();
 
             object terrainLock = new object();
 
@@ -259,8 +259,14 @@ namespace GameClient
             triplanarEffect = contentManager.Load<Effect>("Triplanar");
             terrainDrawContext = new EffectDrawContext(triplanarEffect);
             terrainDrawContext.Effect.Parameters["ColorMap"].SetValue(contentManager.Load<Texture2D>("paved"));
-            terrainDrawContext.Effect.Parameters["textureScale"].SetValue(0.033f + ((1 / cellRes) / 2.2f));
+            SetTextureScale();
             //terrainDrawContext.BasicEffect.Texture = contentManager.Load<Texture2D>("paved"); ;
+        }
+
+        private void SetTextureScale()
+        {
+            //terrainDrawContext.Effect.Parameters["textureScale"].SetValue(0.03f + ((1 / cellRes) / 2.2f));
+            terrainDrawContext.Effect.Parameters["textureScale"].SetValue(0.015f + ((1 / cellRes) / 2.5f));
         }
 
         /// <summary>
